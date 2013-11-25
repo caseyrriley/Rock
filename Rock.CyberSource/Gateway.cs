@@ -195,7 +195,7 @@ namespace Rock.CyberSource
                     var transactionGuid = new Guid ( reply.merchantReferenceCode );
                     var scheduledTransaction = new FinancialScheduledTransaction{ Guid = transactionGuid };
                     scheduledTransaction.TransactionCode = reply.paySubscriptionCreateReply.subscriptionID;
-                        
+                    
                     GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
                     return scheduledTransaction;
                 }
@@ -261,6 +261,7 @@ namespace Rock.CyberSource
                 transaction.NextPaymentDate = NextPaymentDate( startDate, verifyReply.paySubscriptionRetrieveReply.frequency ) ?? transaction.NextPaymentDate;
                 transaction.NumberOfPayments = verifyReply.paySubscriptionRetrieveReply.totalPayments.AsInteger() ?? transaction.NumberOfPayments;
                 transaction.LastStatusUpdateDateTime = DateTime.Now;
+                
                 return true;
             }
             else
@@ -326,6 +327,7 @@ namespace Rock.CyberSource
         /// <returns></returns>
         private ReplyMessage SubmitTransaction( RequestMessage request )
         {
+            ReplyMessage reply = new ReplyMessage();
             string merchantID = GetAttributeValue( "MerchantID" );
             string transactionkey = GetAttributeValue( "TransactionKey" );
                         
@@ -349,33 +351,27 @@ namespace Rock.CyberSource
        
             try            
             {                
-                var reply = proxy.runTransaction( request );
+                reply = proxy.runTransaction( request );
                 return reply;
             }
             catch ( TimeoutException e )
             {
-                //SaveOrderState();
-                Console.WriteLine( "TimeoutException: " + e.Message + "\n" + e.StackTrace );
+                reply.reasonCode = "151";
+                reply.additionalData = e.ToString();
+                return reply;
             }
             catch ( FaultException e )
             {
-                //SaveOrderState();
-                Console.WriteLine( "FaultException: " + e.Message + "\n" + e.StackTrace );
+                reply.reasonCode = "150";
+                reply.additionalData = e.ToString();
+                return reply;
             }            
             catch ( WebException we )
             {
-                //SaveOrderState();
-                /*
-                 * Some types of WebException indicate that the transaction may have been
-                 * completed by CyberSource. The sample code shows how to identify these exceptions.
-                 * If you receive such an exception, and your request included a payment service,
-                 * you should use the CyberSource transaction search screens to determine whether
-                 * the transaction was processed.
-                 */
-                Console.WriteLine( we.ToString() );
-            }
-
-            return null;
+                reply.reasonCode = "";
+                reply.additionalData = we.ToString();
+                return reply;
+            }                     
         }
 
         /// <summary>
@@ -394,6 +390,9 @@ namespace Rock.CyberSource
                 // Invalid field or fields
                 case 102:
                     return "\nThe following fields are invalid: " + string.Join("\n", reply.invalidField);
+                // Partial payment approved
+                case 110:
+                    return "\nOnly a partial amount of this transaction was approved.";
                 // General system failure
                 case 150:
                     return "\nThe payment processor did not process your payment.";
@@ -456,7 +455,6 @@ namespace Rock.CyberSource
                     return "\nThe payment request was received but has not yet been processed.";
                 // Any others not identified
                 default:
-                    var asdf = reply;
                     return "\nYour payment was not processed.  Please double check your payment details.";
             }
         }
@@ -710,16 +708,10 @@ namespace Rock.CyberSource
                     recurringSubscriptionInfo.frequency = "BI-WEEKLY";
                     break;
                 case Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY:
-                    // get the next 1st or the 15th, including possible cutoff dates
                     var nextValidDate = DateTime.ParseExact( recurringSubscriptionInfo.startDate, "yyyyMMdd", null ).AddDays( -1 );
-                    if ( nextValidDate.Day >= 15 )
-                    {
-                        nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 1 ).AddMonths( 1 );
-                    }
-                    else
-                    {
-                        nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 15 );
-                    }                    
+                    nextValidDate = nextValidDate.Day >= 15 
+                        ? nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 1 ).AddMonths( 1 )
+                        : nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 15 );
                     recurringSubscriptionInfo.startDate = nextValidDate.ToString( "yyyyMMdd" );
                     recurringSubscriptionInfo.frequency = "SEMI-MONTHLY";
                     break;
@@ -785,7 +777,7 @@ namespace Rock.CyberSource
                 return null;
             }
         }
-        
+
         #endregion
     }
 }
