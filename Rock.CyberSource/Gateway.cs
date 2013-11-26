@@ -155,7 +155,8 @@ namespace Rock.CyberSource
             request.billTo = GetBillTo( paymentInfo );
             request.item = GetItems( paymentInfo );
             request.purchaseTotals = GetTotals( paymentInfo );
-            request.recurringSubscriptionInfo = GetRecurring( schedule, paymentInfo );
+            request.recurringSubscriptionInfo = GetRecurring( schedule );
+            request.recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
             request.paySubscriptionCreateService = new PaySubscriptionCreateService();
             request.paySubscriptionCreateService.run = "true";
 
@@ -172,7 +173,6 @@ namespace Rock.CyberSource
             else if ( paymentInfo is ReferencePaymentInfo )
             {
                 var reference = paymentInfo as ReferencePaymentInfo;
-                var test = reference.ReferenceNumber;
                 request.paySubscriptionCreateService.paymentRequestID = reference.TransactionCode;                
             }
             else
@@ -222,6 +222,41 @@ namespace Rock.CyberSource
         public override bool UpdateScheduledPayment( FinancialScheduledTransaction transaction, PaymentInfo paymentInfo, out string errorMessage )
         {
             errorMessage = string.Empty;
+            RequestMessage request = GetMerchantInfo();
+            request.recurringSubscriptionInfo = GetRecurring( transaction );
+            request.paySubscriptionUpdateService = new PaySubscriptionUpdateService();
+            request.paySubscriptionUpdateService.run = "true";
+
+            if ( paymentInfo != null )
+            {                
+                request.billTo = GetBillTo( paymentInfo );
+                request.item = GetItems( paymentInfo );
+                request.purchaseTotals = GetTotals( paymentInfo );                
+                request.recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
+            }            
+
+            ReplyMessage reply = SubmitTransaction( request );
+            if ( reply != null )
+            {
+                if ( reply.reasonCode.Equals( "100" ) )
+                {
+                    var transactionGuid = new Guid( reply.merchantReferenceCode );
+                    var scheduledTransaction = new FinancialScheduledTransaction { Guid = transactionGuid };
+                    scheduledTransaction.TransactionCode = reply.paySubscriptionCreateReply.subscriptionID;
+
+                    GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
+                    return true;
+                }
+                else
+                {
+                    errorMessage = string.Format( "The transaction update was not approved.{0}", ProcessError( reply ) );
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid response from the financial gateway.";
+            }
+
             return false;
         }
 
@@ -654,10 +689,10 @@ namespace Rock.CyberSource
         /// </summary>
         /// <param name="schedule">The schedule.</param>
         /// <returns></returns>
-        private RecurringSubscriptionInfo GetRecurring( PaymentSchedule schedule, PaymentInfo paymentInfo )
+        private RecurringSubscriptionInfo GetRecurring( PaymentSchedule schedule )
         {
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();
-            recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
+            //recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
             recurringSubscriptionInfo.startDate = schedule.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
             
@@ -669,19 +704,19 @@ namespace Rock.CyberSource
         /// <summary>
         /// Gets the recurring subscription info.
         /// </summary>
-        /// <param name="schedule">The schedule.</param>
+        /// <param name="transaction">The schedule.</param>
         /// <returns></returns>
-        private RecurringSubscriptionInfo GetRecurring( FinancialScheduledTransaction schedule, PaymentInfo paymentInfo )
+        private RecurringSubscriptionInfo GetRecurring( FinancialScheduledTransaction transaction )
         {
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();            
-            recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
-            recurringSubscriptionInfo.subscriptionID = schedule.GatewayScheduleId;
-            recurringSubscriptionInfo.startDate = schedule.StartDate.ToString( "yyyyMMdd" );
+            //recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
+            recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
+            recurringSubscriptionInfo.startDate = transaction.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
             
-            if ( schedule.TransactionFrequencyValueId > 0 )
+            if ( transaction.TransactionFrequencyValueId > 0 )
             {
-                SetPayPeriod( recurringSubscriptionInfo, DefinedValueCache.Read( schedule.TransactionFrequencyValueId ) );
+                SetPayPeriod( recurringSubscriptionInfo, DefinedValueCache.Read( transaction.TransactionFrequencyValueId ) );
             }
                         
             return recurringSubscriptionInfo;
