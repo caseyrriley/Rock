@@ -965,12 +965,19 @@ namespace Rock.Web.UI
         /// <param name="key">The key to use for the history point</param>
         /// <param name="state">any state information to store for the history point</param>
         /// <param name="title">The title to be used by the browser</param>
-        public void AddHistory(string key, string state, string title)
+        public void AddHistory(string key, string state, string title = "")
         {
             if (ScriptManager.GetCurrent(Page) != null)
             {
                 ScriptManager sManager = ScriptManager.GetCurrent(Page);
-                sManager.AddHistoryPoint(key, state, title);
+                if ( string.IsNullOrWhiteSpace( title ) )
+                {
+                    sManager.AddHistoryPoint( key, state );
+                }
+                else
+                {
+                    sManager.AddHistoryPoint( key, state, title );
+                }
             }
         }
 
@@ -1142,7 +1149,7 @@ namespace Rock.Web.UI
                 blockConfig.Controls.Add( blockConfigLink );
 
                 HtmlGenericControl blockConfigBar = new HtmlGenericControl( "div" );
-                blockConfigBar.Attributes.Add( "class", "block-configuration-bar config-bar" );
+                blockConfigBar.Attributes.Add( "class", "block-configuration-bar" );
                 blockConfig.Controls.Add( blockConfigBar );
 
                 HtmlGenericControl blockConfigTitle = new HtmlGenericControl( "span" );
