@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
+using System.Data;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -21,7 +22,6 @@ namespace Rock.CyberSource
     [Description( "CyberSource Payment Gateway" )]
     [Export( typeof( GatewayComponent ) )]
     [ExportMetadata( "ComponentName", "CyberSource" )]
-
     [TextField( "Merchant ID", "The CyberSource merchant ID (case-sensitive)", true, "", "", 0, "MerchantID" )]
     [MemoField( "Transaction Key", "The CyberSource transaction key", true, "", "", 0, "TransactionKey" )]
     [CustomRadioListField( "Mode", "Mode to use for transactions", "Live,Test", true, "Live", "", 4 )]
@@ -249,7 +249,7 @@ namespace Rock.CyberSource
                 }
                 else
                 {
-                    errorMessage = string.Format( "The transaction update was not approved.{0}", ProcessError( reply ) );
+                    errorMessage = string.Format( "Unable to update this transaction. {0}", ProcessError( reply ) );
                 }
             }
             else
@@ -269,6 +269,28 @@ namespace Rock.CyberSource
         public override bool CancelScheduledPayment( FinancialScheduledTransaction transaction, out string errorMessage )
         {
             errorMessage = string.Empty;
+            RequestMessage request = GetMerchantInfo();
+            request.recurringSubscriptionInfo = GetRecurring( transaction );
+            request.paySubscriptionDeleteService = new PaySubscriptionDeleteService();
+            request.paySubscriptionDeleteService.run = "true";
+            
+            ReplyMessage reply = SubmitTransaction( request );
+            if ( reply != null )
+            {
+                if ( reply.reasonCode.Equals( "100" ) )
+                {
+                    return true;
+                }
+                else
+                {
+                    errorMessage = string.Format( "Unable to cancel this transaction. {0}", ProcessError( reply ) );
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid response from the financial gateway.";
+            }
+
             return false;
         }
 
@@ -286,8 +308,8 @@ namespace Rock.CyberSource
             verifyRequest.paySubscriptionRetrieveService.run = "true";
             verifyRequest.recurringSubscriptionInfo = new RecurringSubscriptionInfo();
             verifyRequest.recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
+            
             ReplyMessage verifyReply = SubmitTransaction( verifyRequest );
-            var status = verifyReply.paySubscriptionRetrieveReply.status;
             if ( verifyReply.reasonCode.Equals("100") )
             {
                 transaction.IsActive = verifyReply.paySubscriptionRetrieveReply.status.ToUpper() == "CURRENT";
@@ -316,7 +338,15 @@ namespace Rock.CyberSource
         /// <returns></returns>
         public override List<Payment> GetPayments( DateTime startDate, DateTime endDate, out string errorMessage )
         {
-            errorMessage = string.Empty;
+            RequestMessage request = GetMerchantInfo();
+            var reportParams = new Dictionary<string, string>();
+            reportParams.Add( "start_date", startDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
+            reportParams.Add( "end_date", endDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
+            
+
+
+
+            errorMessage = "The recurring billing report did not return any data";
             return null;
         }
 
@@ -510,11 +540,11 @@ namespace Rock.CyberSource
             {
                 if ( GetAttributeValue( "Mode" ).Equals( "Live", StringComparison.CurrentCultureIgnoreCase ) )
                 {
-                    return "https://ics2ws.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.93.wsdl";
+                    return "https://ics2ws.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.91.wsdl";
                 }
                 else
                 {
-                    return "https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.93.wsdl";
+                    return "https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.91.wsdl";
                 }
             }
         }
@@ -692,7 +722,6 @@ namespace Rock.CyberSource
         private RecurringSubscriptionInfo GetRecurring( PaymentSchedule schedule )
         {
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();
-            //recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
             recurringSubscriptionInfo.startDate = schedule.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
             
@@ -709,7 +738,6 @@ namespace Rock.CyberSource
         private RecurringSubscriptionInfo GetRecurring( FinancialScheduledTransaction transaction )
         {
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();            
-            //recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
             recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
             recurringSubscriptionInfo.startDate = transaction.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
