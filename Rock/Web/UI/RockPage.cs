@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Caching;
 using System.Text;
 using System.Web;
@@ -14,10 +15,12 @@ using System.Web.Security;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+
 using Rock.Model;
 using Rock.Transactions;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
+
 using Page = System.Web.UI.Page;
 
 namespace Rock.Web.UI
@@ -31,6 +34,7 @@ namespace Rock.Web.UI
 
         private PlaceHolder phLoadTime;
         private ScriptManager _scriptManager;
+        private PageCache _pageCache = null;
 
         #endregion
 
@@ -41,35 +45,63 @@ namespace Rock.Web.UI
         /// </summary>
         protected string UserName = string.Empty;
 
+        /// <summary>
+        /// Gets a dictionary of the current context items (models).
+        /// </summary>
+        internal Dictionary<string, Rock.Data.KeyEntity> ModelContext
+        {
+            get { return _modelContext; }
+            set { _modelContext = value; }
+        }
+        private Dictionary<string, Data.KeyEntity> _modelContext;
+        
         #endregion
 
         #region Public Properties
 
         /// <summary>
-        /// The current Rock page instance being requested.  This value is set 
-        /// by the RockRouteHandler immediately after instantiating the page
+        /// Gets the current page's logical Rock Page Id.
         /// </summary>
-        public PageCache CurrentPage
+        /// <value>
+        /// The page identifier.
+        /// </value>
+        public int PageId
         {
-            get
-            {
-                return _currentPage;
-            }
-            set
-            {
-                _currentPage = value;
-
-                HttpContext.Current.Items.Add( "Rock:PageId", _currentPage.Id );
-                HttpContext.Current.Items.Add( "Rock:LayoutId", _currentPage.LayoutId );
-                HttpContext.Current.Items.Add( "Rock:SiteId", _currentPage.Layout.SiteId );
-
-                if (this.Master is RockMasterPage)
-                {
-                    ( (RockMasterPage)this.Master ).CurrentPage = value;
-                }
-            }
+            get { return _pageCache.Id; }
         }
-        private PageCache _currentPage = null;
+
+        /// <summary>
+        /// Gets the current page's logical Rock Page Guid.
+        /// </summary>
+        /// <value>
+        /// The unique identifier.
+        /// </value>
+        public Guid Guid
+        {
+            get { return _pageCache.Guid; }
+        }
+
+        /// <summary>
+        /// Gets the current page's layout
+        /// </summary>
+        /// <value>
+        /// The layout.
+        /// </value>
+        public LayoutCache Layout
+        {
+            get { return _pageCache.Layout; }
+        }
+
+        /// <summary>
+        /// Gets the current page's site
+        /// </summary>
+        /// <value>
+        /// The site.
+        /// </value>
+        public new SiteCache Site
+        {
+            get { return _pageCache.Layout.Site; }
+        }
 
         /// <summary>
         /// Gets the current page reference.
@@ -77,34 +109,30 @@ namespace Rock.Web.UI
         /// <value>
         /// The current page reference.
         /// </value>
-        public PageReference CurrentPageReference
+        public PageReference PageReference
         {
             get
             {
-                if ( _currentPageReference == null && Context.Items.Contains( "CurrentPageReference" ) )
+                if ( _PageReference == null && Context.Items.Contains( "PageReference" ) )
                 {
-                    _currentPageReference = Context.Items["CurrentPageReference"] as PageReference;
+                    _PageReference = Context.Items["PageReference"] as PageReference;
                 }
 
-                return _currentPageReference;
+                return _PageReference;
             }
 
             set
             {
-                Context.Items.Remove( "CurrentPageReference" );
-                _currentPageReference = value;
+                Context.Items.Remove( "PageReference" );
+                _PageReference = value;
 
-                if ( _currentPageReference != null )
+                if ( _PageReference != null )
                 {
-                    Context.Items.Add( "CurrentPageReference", _CurrentUser );
+                    Context.Items.Add( "PageReference", _CurrentUser );
                 }
             }
         }
-
-        /// <summary>
-        /// The _current page reference
-        /// </summary>
-        public PageReference _currentPageReference = null;
+        private PageReference _PageReference = null;
 
         /// <summary>
         /// The content areas on a layout page that blocks can be added to 
@@ -192,6 +220,7 @@ namespace Rock.Web.UI
                 if ( _CurrentPerson == null && Context.Items.Contains( "CurrentPerson" ) )
                 {
                     _CurrentPerson = Context.Items["CurrentPerson"] as Person;
+                    return _CurrentPerson;
                 }
                 
                 return null;
@@ -229,13 +258,13 @@ namespace Rock.Web.UI
         }
 
         /// <summary>
-        /// Gets the root url path
+        /// 
         /// </summary>
-        public string AppPath
+        public List<RockBlock> RockBlocks
         {
             get
             {
-                return ResolveUrl( "~" );
+                return this.ControlsOfTypeRecursive<RockBlock>();
             }
         }
 
@@ -356,17 +385,17 @@ namespace Rock.Web.UI
 
                 // After logging out check to see if an anonymous user is allowed to view the current page.  If so
                 // redirect back to the current page, otherwise redirect to the site's default page
-                if ( CurrentPage != null )
+                if ( _pageCache != null )
                 {
-                    if ( CurrentPage.IsAuthorized( "View", null ) )
+                    if ( _pageCache.IsAuthorized( "View", null ) )
                     {
                         // Remove the 'logout' queryparam before redirecting
-                        var pageReference = new PageReference( CurrentPageReference.PageId, CurrentPageReference.RouteId, CurrentPageReference.Parameters );
-                        foreach(string key in CurrentPageReference.QueryString)
+                        var pageReference = new PageReference( PageReference.PageId, PageReference.RouteId, PageReference.Parameters );
+                        foreach(string key in PageReference.QueryString)
                         {
                             if (!key.Equals("logout", StringComparison.OrdinalIgnoreCase))
                             {
-                                pageReference.Parameters.Add( key, CurrentPageReference.QueryString[key] );
+                                pageReference.Parameters.Add( key, PageReference.QueryString[key] );
                             }
                         }
                         Response.Redirect( pageReference.BuildUrl(), false );
@@ -374,7 +403,7 @@ namespace Rock.Web.UI
                     }
                     else
                     {
-                        CurrentPage.Layout.Site.RedirectToDefaultPage();
+                        _pageCache.Layout.Site.RedirectToDefaultPage();
                     }
                     return;
                 }
@@ -434,17 +463,17 @@ namespace Rock.Web.UI
             }
 
             // If a PageInstance exists
-            if ( CurrentPage != null )
+            if ( _pageCache != null )
             {
                 // If there's a master page, update it's reference to Current Page
                 if ( this.Master is RockMasterPage )
                 {
-                    ( (RockMasterPage)this.Master ).CurrentPage = CurrentPage;
+                    ( (RockMasterPage)this.Master ).SetPage( _pageCache );
                 }
 
                 // check if page should have been loaded via ssl
                 Page.Trace.Warn( "Checking for SSL request" );
-                if ( !Request.IsSecureConnection && CurrentPage.RequiresEncryption )
+                if ( !Request.IsSecureConnection && _pageCache.RequiresEncryption )
                 {
                     string redirectUrl = Request.Url.ToString().Replace( "http:", "https:" );
                     Response.Redirect( redirectUrl, false );
@@ -454,14 +483,14 @@ namespace Rock.Web.UI
 
                 // Verify that the current user is allowed to view the page.  
                 Page.Trace.Warn( "Checking if user is authorized" );
-                if ( !CurrentPage.IsAuthorized( "View", CurrentPerson ) )
+                if ( !_pageCache.IsAuthorized( "View", CurrentPerson ) )
                 {
                     if ( user == null )
                     {
                         // If not authorized, and the user hasn't logged in yet, redirect to the login page
                         Page.Trace.Warn( "Redirecting to login page" );
 
-                        var site = CurrentPage.Layout.Site;
+                        var site = _pageCache.Layout.Site;
                         if ( site.LoginPageId.HasValue )
                         {
                             site.RedirectToLoginPage( true );
@@ -484,14 +513,14 @@ namespace Rock.Web.UI
                 {
                     // Set current models (context)
                     Page.Trace.Warn( "Checking for Context" );
-                    CurrentPage.Context = new Dictionary<string, Data.KeyEntity>();
+                    ModelContext = new Dictionary<string, Data.KeyEntity>();
                     try 
                     {
-                        foreach ( var pageContext in CurrentPage.PageContexts )
+                        foreach ( var pageContext in _pageCache.PageContexts )
                         {
                             int contextId = 0;
                             if ( Int32.TryParse( PageParameter( pageContext.Value ), out contextId ) )
-                                CurrentPage.Context.Add( pageContext.Key, new Data.KeyEntity( contextId ) );
+                                ModelContext.Add( pageContext.Key, new Data.KeyEntity( contextId ) );
                         }
 
                         char[] delim = new char[1] { ',' };
@@ -500,7 +529,7 @@ namespace Rock.Web.UI
                             string contextItem = Rock.Security.Encryption.DecryptString( param );
                             string[] parts = contextItem.Split('|');
                             if (parts.Length == 2)
-                                CurrentPage.Context.Add(parts[0], new Data.KeyEntity(parts[1]));
+                                ModelContext.Add( parts[0], new Data.KeyEntity( parts[1] ) );
                         }
 
                     }
@@ -508,17 +537,17 @@ namespace Rock.Web.UI
 
                     // set page title
                     Page.Trace.Warn( "Setting page title" );
-                    this.Title = CurrentPage.Title;
+                    this.Title = _pageCache.Title;
 
                     // set viewstate on/off
-                    this.EnableViewState = CurrentPage.EnableViewState;
+                    this.EnableViewState = _pageCache.EnableViewState;
 
                     // Cache object used for block output caching
                     Page.Trace.Warn( "Getting memory cache" );
                     ObjectCache cache = MemoryCache.Default;
 
                     Page.Trace.Warn( "Checking if user can administer" );
-                    bool canAdministratePage = CurrentPage.IsAuthorized( "Administrate", CurrentPerson );
+                    bool canAdministratePage = _pageCache.IsAuthorized( "Administrate", CurrentPerson );
 
                     // Create a javascript object to store information about the current page for client side scripts to use
                     Page.Trace.Warn( "Creating JS objects" );
@@ -530,7 +559,7 @@ namespace Rock.Web.UI
         layout: '{3}',
         baseUrl: '{4}' 
     }});",
-                        CurrentPage.Layout.SiteId, CurrentPage.LayoutId, CurrentPage.Id, CurrentPage.Layout.FileName, AppPath );
+                        _pageCache.Layout.SiteId, _pageCache.LayoutId, _pageCache.Id, _pageCache.Layout.FileName, ResolveUrl( "~" ) );
                     ScriptManager.RegisterStartupScript( this.Page, this.GetType(), "rock-js-object", script, true );
 
                     // Add dummy default button to prevent modalPopupExtender dialogs from displaying when enter key is pressed
@@ -542,7 +571,7 @@ namespace Rock.Web.UI
                     AddTriggerPanel();
 
                     // Add config elements
-                    if ( CurrentPage.IncludeAdminFooter )
+                    if ( _pageCache.IncludeAdminFooter )
                     {
                         Page.Trace.Warn( "Adding popup controls (footer elements)" );
                         AddPopupControls();
@@ -555,18 +584,18 @@ namespace Rock.Web.UI
 
                     // Initialize the list of breadcrumbs for the current page (and blocks on the page)
                     Page.Trace.Warn( "Setting breadcrumbs" );
-                    CurrentPageReference.BreadCrumbs = new List<BreadCrumb>();
+                    PageReference.BreadCrumbs = new List<BreadCrumb>();
 
                     // If the page is configured to display in the breadcrumbs...
-                    string bcName = CurrentPage.BreadCrumbText;
+                    string bcName = _pageCache.BreadCrumbText;
                     if (bcName != string.Empty)
                     {
-                        CurrentPageReference.BreadCrumbs.Add( new BreadCrumb( bcName, CurrentPageReference.BuildUrl() ) );
+                        PageReference.BreadCrumbs.Add( new BreadCrumb( bcName, PageReference.BuildUrl() ) );
                     }
 
                     // Load the blocks and insert them into page zones
                     Page.Trace.Warn( "Loading Blocks" );
-                    foreach ( Rock.Web.Cache.BlockCache block in CurrentPage.Blocks )
+                    foreach ( Rock.Web.Cache.BlockCache block in _pageCache.Blocks )
                     {
                         Page.Trace.Warn( string.Format( "\tLoading '{0}' block", block.Name ) );
 
@@ -644,15 +673,14 @@ namespace Rock.Web.UI
                                 {
                                     Page.Trace.Warn( "\tSetting block properties" );
 
-                                    blockControl.CurrentPage = CurrentPage;
-                                    blockControl.CurrentPageReference = CurrentPageReference;
-                                    blockControl.CurrentBlock = block;
+                                    blockControl.CurrentPageReference = PageReference;
+                                    blockControl.SetBlock( block );
 
                                     // Add any breadcrumbs to current page reference that the block creates
                                     Page.Trace.Warn( "\tAdding any breadcrumbs from block" );
                                     if ( block.BlockLocation == BlockLocation.Page )
                                     {
-                                        blockControl.GetBreadCrumbs( CurrentPageReference ).ForEach( c => CurrentPageReference.BreadCrumbs.Add( c ) );
+                                        blockControl.GetBreadCrumbs( PageReference ).ForEach( c => PageReference.BreadCrumbs.Add( c ) );
                                     }
 
                                     // If the blocktype's additional actions have not yet been loaded, load them now
@@ -681,7 +709,7 @@ namespace Rock.Web.UI
                                     }
 
                                     // Add the block configuration scripts and icons if user is authorized
-                                    if ( CurrentPage.IncludeAdminFooter )
+                                    if ( _pageCache.IncludeAdminFooter )
                                     {
                                         Page.Trace.Warn( "\tAdding block configuration tools" );
                                         AddBlockConfig( blockWrapper, blockControl, block, canAdministrate, canEdit );
@@ -701,14 +729,14 @@ namespace Rock.Web.UI
 
                     // Make the last crumb for this page the active one
                     Page.Trace.Warn( "Setting active breadcrumb" );
-                    if ( CurrentPageReference.BreadCrumbs.Any() )
+                    if ( PageReference.BreadCrumbs.Any() )
                     {
-                        CurrentPageReference.BreadCrumbs.Last().Active = true;
+                        PageReference.BreadCrumbs.Last().Active = true;
                     }
 
                     Page.Trace.Warn( "Getting parent page references" );
-                    var pageReferences = PageReference.GetParentPageReferences( this, CurrentPage, CurrentPageReference );
-                    pageReferences.Add( CurrentPageReference );
+                    var pageReferences = PageReference.GetParentPageReferences( this, _pageCache, PageReference );
+                    pageReferences.Add( PageReference );
                     PageReference.SavePageReferences( pageReferences );
 
                     // Update breadcrumbs
@@ -721,28 +749,28 @@ namespace Rock.Web.UI
 
                     // Add favicon and apple touch icons to page
                     Page.Trace.Warn( "Adding favicons and appletouch links" );
-                    if ( CurrentPage.Layout.Site.FaviconUrl != null )
+                    if ( _pageCache.Layout.Site.FaviconUrl != null )
                     {
                         System.Web.UI.HtmlControls.HtmlLink faviconLink = new System.Web.UI.HtmlControls.HtmlLink();
 
                         faviconLink.Attributes.Add( "rel", "shortcut icon" );
-                        faviconLink.Attributes.Add( "href", ResolveUrl( "~/" + CurrentPage.Layout.Site.FaviconUrl ) );
+                        faviconLink.Attributes.Add( "href", ResolveUrl( "~/" + _pageCache.Layout.Site.FaviconUrl ) );
 
-                        CurrentPage.AddHtmlLink( this.Page, faviconLink );
+                        AddHtmlLink( faviconLink );
                     }
 
-                    if ( CurrentPage.Layout.Site.AppleTouchIconUrl != null )
+                    if ( _pageCache.Layout.Site.AppleTouchIconUrl != null )
                     {
                         System.Web.UI.HtmlControls.HtmlLink touchLink = new System.Web.UI.HtmlControls.HtmlLink();
 
                         touchLink.Attributes.Add( "rel", "apple-touch-icon" );
-                        touchLink.Attributes.Add( "href", ResolveUrl( "~/" + CurrentPage.Layout.Site.AppleTouchIconUrl ) );
+                        touchLink.Attributes.Add( "href", ResolveUrl( "~/" + _pageCache.Layout.Site.AppleTouchIconUrl ) );
 
-                        CurrentPage.AddHtmlLink( this.Page, touchLink );
+                        AddHtmlLink( touchLink );
                     }
 
                     // Add the page admin footer if the user is authorized to edit the page
-                    if ( CurrentPage.IncludeAdminFooter && canAdministratePage )
+                    if ( _pageCache.IncludeAdminFooter && canAdministratePage )
                     {
                         Page.Trace.Warn( "Adding admin footer to page" );
                         HtmlGenericControl adminFooter = new HtmlGenericControl( "div" );
@@ -774,7 +802,7 @@ namespace Rock.Web.UI
                         aAttributes.ClientIDMode = System.Web.UI.ClientIDMode.Static;
                         aAttributes.Attributes.Add( "class", "btn properties" );
                         aAttributes.Attributes.Add( "height", "500px" );
-                        aAttributes.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/PageProperties/{0}?t=Page Properties", CurrentPage.Id ) ) + "')" );
+                        aAttributes.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/PageProperties/{0}?t=Page Properties", _pageCache.Id ) ) + "')" );
                         aAttributes.Attributes.Add( "Title", "Page Properties" );
                         HtmlGenericControl iAttributes = new HtmlGenericControl( "i" );
                         aAttributes.Controls.Add( iAttributes );
@@ -787,7 +815,7 @@ namespace Rock.Web.UI
                         aChildPages.ClientIDMode = System.Web.UI.ClientIDMode.Static;
                         aChildPages.Attributes.Add( "class", "btn page-child-pages" );
                         aChildPages.Attributes.Add( "height", "500px" );
-                        aChildPages.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/pages/{0}?t=Child Pages&pb=&sb=Done", CurrentPage.Id ) ) + "')" );
+                        aChildPages.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/pages/{0}?t=Child Pages&pb=&sb=Done", _pageCache.Id ) ) + "')" );
                         aChildPages.Attributes.Add( "Title", "Child Pages" );
                         HtmlGenericControl iChildPages = new HtmlGenericControl( "i" );
                         aChildPages.Controls.Add( iChildPages );
@@ -811,7 +839,7 @@ namespace Rock.Web.UI
                         aPageSecurity.Attributes.Add( "class", "btn page-security" );
                         aPageSecurity.Attributes.Add( "height", "500px" );
                         aPageSecurity.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/Secure/{0}/{1}?t=Page Security&pb=&sb=Done",
-                            EntityTypeCache.Read( typeof( Rock.Model.Page ) ).Id, CurrentPage.Id ) ) + "')" );
+                            EntityTypeCache.Read( typeof( Rock.Model.Page ) ).Id, _pageCache.Id ) ) + "')" );
                         aPageSecurity.Attributes.Add( "Title", "Page Security" );
                         HtmlGenericControl iPageSecurity = new HtmlGenericControl( "i" );
                         aPageSecurity.Controls.Add( iPageSecurity );
@@ -835,10 +863,10 @@ namespace Rock.Web.UI
                     // Check to see if page output should be cached.  The RockRouteHandler
                     // saves the PageCacheData information for the current page to memorycache 
                     // so it should always exist
-                    if ( CurrentPage.OutputCacheDuration > 0 )
+                    if ( _pageCache.OutputCacheDuration > 0 )
                     {
                         Response.Cache.SetCacheability( System.Web.HttpCacheability.Public );
-                        Response.Cache.SetExpires( DateTime.Now.AddSeconds( CurrentPage.OutputCacheDuration ) );
+                        Response.Cache.SetExpires( DateTime.Now.AddSeconds( _pageCache.OutputCacheDuration ) );
                         Response.Cache.SetValidUntilExpires( true );
                     }
                 }
@@ -856,12 +884,12 @@ namespace Rock.Web.UI
             Page.Header.DataBind();
 
             // create a page view transaction if enabled
-            if (CurrentPage != null && Convert.ToBoolean( ConfigurationManager.AppSettings["EnablePageViewTracking"] ) )
+            if (_pageCache != null && Convert.ToBoolean( ConfigurationManager.AppSettings["EnablePageViewTracking"] ) )
             {
                 PageViewTransaction transaction = new PageViewTransaction();
                 transaction.DateViewed = DateTime.Now;
-                transaction.PageId = CurrentPage.Id;
-                transaction.SiteId = CurrentPage.Layout.Site.Id;
+                transaction.PageId = _pageCache.Id;
+                transaction.SiteId = _pageCache.Layout.Site.Id;
                 if ( CurrentPersonId != null )
                     transaction.PersonId = (int)CurrentPersonId;
                 transaction.IPAddress = Request.UserHostAddress;
@@ -891,6 +919,21 @@ namespace Rock.Web.UI
 
         #region Public Methods
 
+        internal void SetPage( PageCache pageCache )
+        {
+            _pageCache = pageCache;
+
+            HttpContext.Current.Items.Add( "Rock:PageId", _pageCache.Id );
+            HttpContext.Current.Items.Add( "Rock:LayoutId", _pageCache.LayoutId );
+            HttpContext.Current.Items.Add( "Rock:SiteId", _pageCache.Layout.SiteId );
+
+            if ( this.Master is RockMasterPage )
+            {
+                var masterPage = (RockMasterPage)this.Master;
+                masterPage.SetPage( pageCache );
+            }
+        }
+
         /// <summary>
         /// Returns the current page's first value for the selected attribute
         /// If the attribute doesn't exist, null is returned
@@ -899,9 +942,9 @@ namespace Rock.Web.UI
         /// <returns></returns>
         public string GetAttributeValue( string key )
         {
-            if ( CurrentPage != null )
+            if ( _pageCache != null )
             {
-                return CurrentPage.GetAttributeValue( key );
+                return _pageCache.GetAttributeValue( key );
             }
             return null;
         }
@@ -914,24 +957,74 @@ namespace Rock.Web.UI
         /// <returns>a list of strings or an empty list if none exists</returns>
         public List<string> GetAttributeValues( string key )
         {
-            if ( CurrentPage != null )
+            if ( _pageCache != null )
             {
-                return CurrentPage.GetAttributeValues( key );
+                return _pageCache.GetAttributeValues( key );
             }
 
             return new List<string>();
         }
 
         /// <summary>
-        /// 
+        /// Determines whether the specified action is authorized for the current page.
         /// </summary>
-        public List<RockBlock> RockBlocks
+        /// <param name="action">The action.</param>
+        /// <param name="person">The person.</param>
+        /// <returns></returns>
+        public bool IsAuthorized( string action, Person person )
         {
-            get
-            {
-                return this.ControlsOfTypeRecursive<RockBlock>();
-            }
+            return _pageCache.IsAuthorized( action, person );
         }
+
+        #region HtmlLinks
+
+        /// <summary>
+        /// Adds a new CSS link that will be added to the page header prior to the page being rendered
+        /// </summary>
+        /// <param name="href">Path to css file.  Should be relative to layout template.  Will be resolved at runtime</param>
+        public void AddCSSLink( string href )
+        {
+            RockPage.AddCSSLink( this, href );
+        }
+
+        /// <summary>
+        /// Adds a new CSS link that will be added to the page header prior to the page being rendered
+        /// </summary>
+        /// <param name="href">The href.</param>
+        /// <param name="mediaType">MediaType to use in the css link.</param>
+        public void AddCSSLink( string href, string mediaType )
+        {
+            RockPage.AddCSSLink( this, href, mediaType );
+        }
+
+        /// <summary>
+        /// Adds a meta tag to the page header priore to the page being rendered
+        /// </summary>
+        /// <param name="htmlMeta">The HTML meta tag.</param>
+        public void AddMetaTag( HtmlMeta htmlMeta )
+        {
+            RockPage.AddMetaTag( this, htmlMeta );
+        }
+
+        /// <summary>
+        /// Adds a new Html link that will be added to the page header prior to the page being rendered
+        /// </summary>
+        /// <param name="htmlLink">The HTML link.</param>
+        public void AddHtmlLink( HtmlLink htmlLink )
+        {
+            RockPage.AddHtmlLink( this, htmlLink );
+        }
+
+        /// <summary>
+        /// Adds a new script tag to the page header prior to the page being rendered
+        /// </summary>
+        /// <param name="path">The path.</param>
+        public void AddScriptLink(string path)
+        {
+            RockPage.AddScriptLink( this, path );
+        }
+
+        #endregion
 
         /// <summary>
         /// Hides any secondary blocks.
@@ -955,7 +1048,7 @@ namespace Rock.Web.UI
         /// <param name="ex">The System.Exception to log.</param>
         public void LogException( Exception ex )
         {
-            ExceptionLogService.LogException( ex, Context, CurrentPage.Id, CurrentPage.Layout.SiteId, CurrentPersonId );
+            ExceptionLogService.LogException( ex, Context, _pageCache.Id, _pageCache.Layout.SiteId, CurrentPersonId );
         }
 
         /// <summary>
@@ -992,11 +1085,88 @@ namespace Rock.Web.UI
             string themeUrl = url;
             if ( url.StartsWith( "~~" ) )
             {
-                themeUrl = "~/Themes/" + CurrentPage.Layout.Site.Theme + ( url.Length > 2 ? url.Substring( 2 ) : string.Empty );
+                themeUrl = "~/Themes/" + _pageCache.Layout.Site.Theme + ( url.Length > 2 ? url.Substring( 2 ) : string.Empty );
             }
 
             return ResolveUrl( themeUrl );
         }
+
+        /// <summary>
+        /// Gets the current context object for a given entity type.
+        /// </summary>
+        /// <param name="entity">The entity.</param>
+        /// <returns></returns>
+        public Rock.Data.IEntity GetCurrentContext( EntityTypeCache entity )
+        {
+            if ( this.ModelContext.ContainsKey( entity.Name ) )
+            {
+                var keyModel = this.ModelContext[entity.Name];
+
+                if ( keyModel.Entity == null )
+                {
+                    Type modelType = entity.GetEntityType();
+
+                    if ( modelType == null )
+                    {
+                        // if the Type isn't found in the Rock.dll (it might be from a Plugin), lookup which assessmbly it is in and look in there
+                        string[] assemblyNameParts = entity.AssemblyName.Split( new char[] { ',' } );
+                        if ( assemblyNameParts.Length > 1 )
+                        {
+                            modelType = Type.GetType( string.Format( "{0}, {1}", entity.Name, assemblyNameParts[1] ) );
+                        }
+                    }
+
+                    if ( modelType != null )
+                    {
+                        // In the case of core Rock.dll Types, we'll just use Rock.Data.Service<> and Rock.Data.RockContext<>
+                        // otherwise find the first (and hopefully only) Service<> and dbContext we can find in the Assembly.  
+                        Type serviceType = typeof( Rock.Data.Service<> );
+                        Type contextType = typeof( Rock.Data.RockContext );
+                        if ( modelType.Assembly != serviceType.Assembly )
+                        {
+                            var serviceTypeLookup = Reflection.SearchAssembly( modelType.Assembly, serviceType );
+                            if ( serviceTypeLookup.Any() )
+                            {
+                                serviceType = serviceTypeLookup.First().Value;
+                            }
+
+                            var contextTypeLookup = Reflection.SearchAssembly( modelType.Assembly, typeof( System.Data.Entity.DbContext ) );
+
+                            if ( contextTypeLookup.Any() )
+                            {
+                                contextType = contextTypeLookup.First().Value;
+                            }
+                        }
+
+                        System.Data.Entity.DbContext dbContext = Activator.CreateInstance( contextType ) as System.Data.Entity.DbContext;
+
+                        Type service = serviceType.MakeGenericType( new Type[] { modelType } );
+                        var serviceInstance = Activator.CreateInstance( service, dbContext );
+
+                        if ( string.IsNullOrWhiteSpace( keyModel.Key ) )
+                        {
+                            MethodInfo getMethod = service.GetMethod( "Get", new Type[] { typeof( int ) } );
+                            keyModel.Entity = getMethod.Invoke( serviceInstance, new object[] { keyModel.Id } ) as Rock.Data.IEntity;
+                        }
+                        else
+                        {
+                            MethodInfo getMethod = service.GetMethod( "GetByPublicKey" );
+                            keyModel.Entity = getMethod.Invoke( serviceInstance, new object[] { keyModel.Key } ) as Rock.Data.IEntity;
+                        }
+
+                        if ( keyModel.Entity is Rock.Attribute.IHasAttributes )
+                        {
+                            Rock.Attribute.Helper.LoadAttributes( keyModel.Entity as Rock.Attribute.IHasAttributes );
+                        }
+                    }
+                }
+
+                return keyModel.Entity;
+            }
+
+            return null;
+        }
+
 
         /// <summary>
         /// Adds an update trigger for when the block instance properties are updated.
@@ -1104,7 +1274,7 @@ namespace Rock.Web.UI
                 aBlockConfig.ClientIDMode = System.Web.UI.ClientIDMode.Static;
                 aBlockConfig.Attributes.Add( "class", "zone-blocks" );
                 aBlockConfig.Attributes.Add( "height", "500px" );
-                aBlockConfig.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/ZoneBlocks/{0}/{1}?t=Zone Blocks&pb=&sb=Done", CurrentPage.Id, zoneControl.Key ) ) + "')" );
+                aBlockConfig.Attributes.Add( "href", "javascript: Rock.controls.modal.show($(this), '" + ResolveUrl( string.Format( "~/ZoneBlocks/{0}/{1}?t=Zone Blocks&pb=&sb=Done", _pageCache.Id, zoneControl.Key ) ) + "')" );
                 aBlockConfig.Attributes.Add( "Title", "Zone Blocks" );
                 aBlockConfig.Attributes.Add( "zone", zoneControl.Key );
                 //aBlockConfig.InnerText = "Blocks";
@@ -1202,9 +1372,48 @@ namespace Rock.Web.UI
             rblLocation.ID = "block-move-Location";
             rblLocation.CssClass = "inputs-list";
             rblLocation.Items.Add( new ListItem( "Current Page" ) );
-            rblLocation.Items.Add( new ListItem( string.Format( "All Pages Using the '{0}' Layout", CurrentPage.Layout.Name ) ) );
+            rblLocation.Items.Add( new ListItem( string.Format( "All Pages Using the '{0}' Layout", _pageCache.Layout.Name ) ) );
             rblLocation.Label = "Parent";
             fsZoneSelect.Controls.Add( rblLocation );
+        }
+
+        #endregion
+
+        #region SharedItemCaching
+
+        /// <summary>
+        /// Used to save an item to the current HTTPRequests items collection.  This is useful if multiple blocks
+        /// on the same page will need access to the same object.  The first block can read the object and save
+        /// it using this method for the other blocks to reference
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="item"></param>
+        public void SaveSharedItem( string key, object item )
+        {
+            string itemKey = string.Format( "{0}:Item:{1}", PageCache.CacheKey( PageId ), key );
+
+            System.Collections.IDictionary items = HttpContext.Current.Items;
+            if ( items.Contains( itemKey ) )
+                items[itemKey] = item;
+            else
+                items.Add( itemKey, item );
+        }
+
+        /// <summary>
+        /// Retrieves an item from the current HTTPRequest items collection.  This is useful to retrieve an object
+        /// that was saved by a previous block on the same page.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public object GetSharedItem( string key )
+        {
+            string itemKey = string.Format( "{0}:Item:{1}", PageCache.CacheKey( PageId ), key );
+
+            System.Collections.IDictionary items = HttpContext.Current.Items;
+            if ( items.Contains( itemKey ) )
+                return items[itemKey];
+
+            return null;
         }
 
         #endregion
