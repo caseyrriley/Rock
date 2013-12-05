@@ -13,12 +13,34 @@ using System.Xml.Linq;
 namespace Rock.CyberSource.Reporting
 {
     /// <summary>
-    /// 
+    /// Provides interaction with CyberSource XML reporting API
     /// </summary>
     public class Api
     {
-        public bool Test { get; set; }
+        public string merchantId { get; set; }
+        public string transactionKey { get; set; }
+        public bool test { get; set; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Api"/> class.
+        /// </summary>
+        /// <param name="merchant">The merchant.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="isTest">if set to <c>true</c> [is test].</param>
+        public Api( string merchant, string key, bool isTest = false )
+        {
+            merchantId = merchant;
+            transactionKey = key;
+            test = isTest;
+        }
+
+        /// <summary>
+        /// Gets the search.
+        /// </summary>
+        /// <param name="searchName">Name of the search.</param>
+        /// <param name="reportParameters">The report parameters.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns></returns>
         public DataTable GetSearch( string searchName, Dictionary<string, string> reportParameters, out string errorMessage )
         {
             // Run a search
@@ -27,6 +49,13 @@ namespace Rock.CyberSource.Reporting
             return null;
         }
 
+        /// <summary>
+        /// Gets the report.
+        /// </summary>
+        /// <param name="reportName">Name of the report.</param>
+        /// <param name="reportParameters">The report parameters.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns></returns>
         public DataTable GetReport( string reportName, Dictionary<string, string> reportParameters, out string errorMessage )
         {
             // Request a report
@@ -35,6 +64,12 @@ namespace Rock.CyberSource.Reporting
             return null;
         }
 
+        /// <summary>
+        /// Gets the data.
+        /// </summary>
+        /// <param name="reportId">The report identifier.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns></returns>
         private DataTable GetData( string reportId, out string errorMessage )
         {
             // Request the Metadata
@@ -43,6 +78,12 @@ namespace Rock.CyberSource.Reporting
             return null;
         }
 
+        /// <summary>
+        /// Sends the request.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns></returns>
         private XDocument SendRequest( XElement request, out string errorMessage )
         {
             errorMessage = string.Empty;
@@ -82,18 +123,26 @@ namespace Rock.CyberSource.Reporting
             return response;
         }
 
+        /// <summary>
+        /// Gets the API URL.
+        /// </summary>
+        /// <returns></returns>
         private string ReportingApiUrl()
         {
-            if ( Test )
+            if ( test )
             {
-                return "https://ebctest.cybersource.com/ebctest";
+                return "https://ebctest.cybersource.com/ebctest/DownloadReport/";
             }
             else
             {
-                return "https://ebc.cybersource.com/ebc";
+                return "https://ebc.cybersource.com/ebc/DownloadReport/";
             }
         }
 
+        /// <summary>
+        /// Gets the request element.
+        /// </summary>
+        /// <returns></returns>
         private XElement GetRequestElement()
         {
             return new XElement( "reportingEngineRequest", null );

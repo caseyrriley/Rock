@@ -77,17 +77,17 @@ namespace Rock.CyberSource
         {
             errorMessage = string.Empty;
             RequestMessage request = GetMerchantInfo();
-            request.billTo = GetBillTo( paymentInfo );            
-            request.item = GetItems( paymentInfo );            
+            request.billTo = GetBillTo( paymentInfo );
+            request.item = GetItems( paymentInfo );
             request.purchaseTotals = GetTotals( paymentInfo );
 
             if ( paymentInfo is CreditCardPaymentInfo )
-            {   
+            {
                 var cc = paymentInfo as CreditCardPaymentInfo;
                 request.card = GetCard( cc );
-            }            
+            }
             else if ( paymentInfo is ACHPaymentInfo )
-            {   
+            {
                 var ach = paymentInfo as ACHPaymentInfo;
                 request.check = GetCheck( ach );
             }
@@ -96,13 +96,13 @@ namespace Rock.CyberSource
                 var reference = paymentInfo as ReferencePaymentInfo;
                 request.recurringSubscriptionInfo = new RecurringSubscriptionInfo();
                 request.recurringSubscriptionInfo.subscriptionID = reference.ReferenceNumber;
-            }            
-            else 
+            }
+            else
             {
                 errorMessage = "Payment type not implemented.";
                 return null;
             }
-            
+
             if ( paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
             {
                 request.ccAuthService = new CCAuthService();
@@ -131,13 +131,13 @@ namespace Rock.CyberSource
                 else
                 {
                     errorMessage = string.Format( "Your order was not approved.{0}", ProcessError( reply ) );
-                }                
+                }
             }
             else
             {
                 errorMessage = "Invalid response from the financial gateway.";
             }
-            
+
             return null;
         }
 
@@ -173,7 +173,7 @@ namespace Rock.CyberSource
             else if ( paymentInfo is ReferencePaymentInfo )
             {
                 var reference = paymentInfo as ReferencePaymentInfo;
-                request.paySubscriptionCreateService.paymentRequestID = reference.TransactionCode;                
+                request.paySubscriptionCreateService.paymentRequestID = reference.TransactionCode;
             }
             else
             {
@@ -186,16 +186,16 @@ namespace Rock.CyberSource
                 request.subscription = new Subscription();
                 request.subscription.paymentMethod = "check";
             }
-                                  
+
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
-            {   
+            {
                 if ( reply.reasonCode.Equals( "100" ) )
                 {
-                    var transactionGuid = new Guid ( reply.merchantReferenceCode );
-                    var scheduledTransaction = new FinancialScheduledTransaction{ Guid = transactionGuid };
+                    var transactionGuid = new Guid( reply.merchantReferenceCode );
+                    var scheduledTransaction = new FinancialScheduledTransaction { Guid = transactionGuid };
                     scheduledTransaction.TransactionCode = reply.paySubscriptionCreateReply.subscriptionID;
-                    
+
                     GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
                     return scheduledTransaction;
                 }
@@ -228,12 +228,12 @@ namespace Rock.CyberSource
             request.paySubscriptionUpdateService.run = "true";
 
             if ( paymentInfo != null )
-            {                
+            {
                 request.billTo = GetBillTo( paymentInfo );
                 request.item = GetItems( paymentInfo );
-                request.purchaseTotals = GetTotals( paymentInfo );                
+                request.purchaseTotals = GetTotals( paymentInfo );
                 request.recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
-            }            
+            }
 
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
@@ -273,7 +273,7 @@ namespace Rock.CyberSource
             request.recurringSubscriptionInfo = GetRecurring( transaction );
             request.paySubscriptionDeleteService = new PaySubscriptionDeleteService();
             request.paySubscriptionDeleteService.run = "true";
-            
+
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
             {
@@ -308,9 +308,9 @@ namespace Rock.CyberSource
             verifyRequest.paySubscriptionRetrieveService.run = "true";
             verifyRequest.recurringSubscriptionInfo = new RecurringSubscriptionInfo();
             verifyRequest.recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
-            
+
             ReplyMessage verifyReply = SubmitTransaction( verifyRequest );
-            if ( verifyReply.reasonCode.Equals("100") )
+            if ( verifyReply.reasonCode.Equals( "100" ) )
             {
                 transaction.IsActive = verifyReply.paySubscriptionRetrieveReply.status.ToUpper() == "CURRENT";
                 var startDate = GetDate( verifyReply.paySubscriptionRetrieveReply.startDate );
@@ -318,14 +318,14 @@ namespace Rock.CyberSource
                 transaction.NextPaymentDate = NextPaymentDate( startDate, verifyReply.paySubscriptionRetrieveReply.frequency ) ?? transaction.NextPaymentDate;
                 transaction.NumberOfPayments = verifyReply.paySubscriptionRetrieveReply.totalPayments.AsInteger() ?? transaction.NumberOfPayments;
                 transaction.LastStatusUpdateDateTime = DateTime.Now;
-                
+
                 return true;
             }
             else
             {
                 errorMessage = ProcessError( verifyReply );
             }
-            
+
             return false;
         }
 
@@ -338,15 +338,25 @@ namespace Rock.CyberSource
         /// <returns></returns>
         public override List<Payment> GetPayments( DateTime startDate, DateTime endDate, out string errorMessage )
         {
-            RequestMessage request = GetMerchantInfo();
+            var reportingApi = new Reporting.Api(
+                GetAttributeValue( "MerchantID" ),
+                GetAttributeValue( "TransactionKey" ),
+                GetAttributeValue( "Mode" ).Equals( "Live", StringComparison.CurrentCultureIgnoreCase )
+            );
             var reportParams = new Dictionary<string, string>();
             reportParams.Add( "start_date", startDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
             reportParams.Add( "end_date", endDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
-            
+
+            DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
+            if ( dt != null )
+            {
+                var transactions = new List<Payment>();
 
 
 
-            errorMessage = "The recurring billing report did not return any data";
+            }
+
+            errorMessage = "The subscription detail report did not return any data";
             return null;
         }
 
@@ -377,7 +387,7 @@ namespace Rock.CyberSource
             {
                 errorMessage = ProcessError( reply );
             }
-            
+
             return string.Empty;
         }
 
@@ -395,7 +405,7 @@ namespace Rock.CyberSource
             ReplyMessage reply = new ReplyMessage();
             string merchantID = GetAttributeValue( "MerchantID" );
             string transactionkey = GetAttributeValue( "TransactionKey" );
-                        
+
             BasicHttpBinding binding = new BasicHttpBinding();
             binding.Name = "ITransactionProcessor";
             binding.MaxBufferSize = 2147483647;
@@ -413,9 +423,9 @@ namespace Rock.CyberSource
             proxy.ClientCredentials.UserName.Password = transactionkey;
             proxy.Endpoint.Address = address;
             proxy.Endpoint.Binding = binding;
-       
-            try            
-            {                
+
+            try
+            {
                 reply = proxy.runTransaction( request );
                 return reply;
             }
@@ -430,13 +440,13 @@ namespace Rock.CyberSource
                 reply.reasonCode = "150";
                 reply.additionalData = e.ToString();
                 return reply;
-            }            
+            }
             catch ( WebException we )
             {
                 reply.reasonCode = "";
                 reply.additionalData = we.ToString();
                 return reply;
-            }                     
+            }
         }
 
         /// <summary>
@@ -454,7 +464,7 @@ namespace Rock.CyberSource
                     return "\nThe following required fields are missing: " + string.Join( "\n", reply.missingField );
                 // Invalid field or fields
                 case 102:
-                    return "\nThe following fields are invalid: " + string.Join("\n", reply.invalidField);
+                    return "\nThe following fields are invalid: " + string.Join( "\n", reply.invalidField );
                 // Partial payment approved
                 case 110:
                     return "\nOnly a partial amount of this transaction was approved.";
@@ -523,8 +533,8 @@ namespace Rock.CyberSource
                     return "\nYour payment was not processed.  Please double check your payment details.";
             }
         }
-               
-        #endregion  
+
+        #endregion
 
         #region Helper Methods
 
@@ -577,7 +587,7 @@ namespace Rock.CyberSource
         /// <param name="paymentInfo">The payment information.</param>
         /// <returns></returns>
         private BillTo GetBillTo( PaymentInfo paymentInfo )
-        {            
+        {
             BillTo billingInfo = new BillTo();
             billingInfo.firstName = paymentInfo.FirstName.Left( 50 );       // up to 50 chars
             billingInfo.lastName = paymentInfo.LastName.Left( 60 );         // up to 60 chars
@@ -586,10 +596,10 @@ namespace Rock.CyberSource
             billingInfo.street1 = paymentInfo.Street.Left( 50 );            // up to 50 chars
             billingInfo.city = paymentInfo.City.Left( 50 );                 // up to 50 chars
             billingInfo.state = paymentInfo.State.Left( 2 );                // only 2 chars
-            billingInfo.postalCode = paymentInfo.Zip.Length > 5             
-                ? Regex.Replace(paymentInfo.Zip, @"^(.{5})(.{4})$", "$1-$2")
+            billingInfo.postalCode = paymentInfo.Zip.Length > 5
+                ? Regex.Replace( paymentInfo.Zip, @"^(.{5})(.{4})$", "$1-$2" )
                 : paymentInfo.Zip;                                          // 9 chars with a separating -
-            
+
             billingInfo.country = "US";                                     // only 2 chars
             billingInfo.ipAddress = Dns.GetHostEntry( Dns.GetHostName() )
                 .AddressList.FirstOrDefault( ip => ip.AddressFamily == AddressFamily.InterNetwork ).ToString();
@@ -615,9 +625,9 @@ namespace Rock.CyberSource
         {
             BillTo billingInfo = new BillTo();
             billingInfo.customerID = transaction.AuthorizedPerson.Id.ToString();
-            billingInfo.firstName = transaction.AuthorizedPerson.FirstName.Left(50);       // up to 50 chars
+            billingInfo.firstName = transaction.AuthorizedPerson.FirstName.Left( 50 );       // up to 50 chars
             billingInfo.lastName = transaction.AuthorizedPerson.LastName.Left( 50 );       // up to 60 chars
-            billingInfo.email = transaction.AuthorizedPerson.Email.Left(255);              // up to 255 chars
+            billingInfo.email = transaction.AuthorizedPerson.Email.Left( 255 );              // up to 255 chars
             billingInfo.ipAddress = Dns.GetHostEntry( Dns.GetHostName() )
                 .AddressList.FirstOrDefault( ip => ip.AddressFamily == AddressFamily.InterNetwork ).ToString();
 
@@ -632,7 +642,7 @@ namespace Rock.CyberSource
         private Item[] GetItems( PaymentInfo paymentInfo )
         {   // just get a single item for the total amount
             List<Item> itemList = new List<Item>();
-            
+
             Item item = new Item();
             item.id = "0";
             item.unitPrice = paymentInfo.Amount.ToString();
@@ -694,7 +704,7 @@ namespace Rock.CyberSource
                     card.cardType = string.Empty;
                     break;
             }
-            
+
             return card;
         }
 
@@ -710,7 +720,7 @@ namespace Rock.CyberSource
             check.accountType = ach.AccountType == BankAccountType.Checking ? "C" : "S";
             check.bankTransitNumber = ach.BankRoutingNumber.AsNumeric();
             check.secCode = "WEB";
-            
+
             return check;
         }
 
@@ -724,9 +734,9 @@ namespace Rock.CyberSource
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();
             recurringSubscriptionInfo.startDate = schedule.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
-            
+
             SetPayPeriod( recurringSubscriptionInfo, schedule.TransactionFrequencyValue );
-                        
+
             return recurringSubscriptionInfo;
         }
 
@@ -737,16 +747,16 @@ namespace Rock.CyberSource
         /// <returns></returns>
         private RecurringSubscriptionInfo GetRecurring( FinancialScheduledTransaction transaction )
         {
-            var recurringSubscriptionInfo = new RecurringSubscriptionInfo();            
+            var recurringSubscriptionInfo = new RecurringSubscriptionInfo();
             recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
             recurringSubscriptionInfo.startDate = transaction.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
-            
+
             if ( transaction.TransactionFrequencyValueId > 0 )
             {
                 SetPayPeriod( recurringSubscriptionInfo, DefinedValueCache.Read( transaction.TransactionFrequencyValueId ) );
             }
-                        
+
             return recurringSubscriptionInfo;
         }
 
@@ -772,7 +782,7 @@ namespace Rock.CyberSource
                     break;
                 case Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY:
                     var nextValidDate = DateTime.ParseExact( recurringSubscriptionInfo.startDate, "yyyyMMdd", null ).AddDays( -1 );
-                    nextValidDate = nextValidDate.Day >= 15 
+                    nextValidDate = nextValidDate.Day >= 15
                         ? nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 1 ).AddMonths( 1 )
                         : nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 15 );
                     recurringSubscriptionInfo.startDate = nextValidDate.ToString( "yyyyMMdd" );
@@ -795,7 +805,7 @@ namespace Rock.CyberSource
         /// <returns></returns>
         private DateTime? NextPaymentDate( DateTime? dt, string frequency )
         {
-            DateTime startDate = (DateTime)(dt ?? DateTime.Now);
+            DateTime startDate = (DateTime)( dt ?? DateTime.Now );
             DateTime nextDate;
             switch ( frequency.ToUpper() )
             {
@@ -818,7 +828,7 @@ namespace Rock.CyberSource
                 default:
                     nextDate = startDate;
                     break;
-            }            
+            }
 
             return nextDate;
         }
