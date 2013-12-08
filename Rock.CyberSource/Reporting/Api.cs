@@ -59,8 +59,18 @@ namespace Rock.CyberSource.Reporting
         public DataTable GetReport( string reportName, Dictionary<string, string> reportParameters, out string errorMessage )
         {
             // Request a report
-
             errorMessage = string.Empty;
+                        
+            //var response = SendRequest( new ReportRequest( reportName, reportParameters ).ToXmlElement(), out errorMessage );
+            //if ( response != null )
+            //{
+            //    var reportResponse = new ReportResponse( response );
+            //    if ( reportResponse != null )
+            //    {
+            //        return GetData( reportResponse.ReportId, out errorMessage );
+            //    }
+            //}
+            
             return null;
         }
 
@@ -95,8 +105,10 @@ namespace Rock.CyberSource.Reporting
             XDocument response = null;
 
             byte[] postData = ASCIIEncoding.ASCII.GetBytes( xdocRequest.ToString() );
+            string buildUrl = ReportingApiUrl();
 
-            HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( ReportingApiUrl() );
+
+            HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( buildUrl );
             webRequest.Method = "POST";
             webRequest.ContentType = "text/plain";
             webRequest.ContentLength = postData.Length;

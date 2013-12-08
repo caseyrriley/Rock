@@ -338,6 +338,8 @@ namespace Rock.CyberSource
         /// <returns></returns>
         public override List<Payment> GetPayments( DateTime startDate, DateTime endDate, out string errorMessage )
         {
+            
+            List<Payment> paymentList = new List<Payment>();
             var reportingApi = new Reporting.Api(
                 GetAttributeValue( "MerchantID" ),
                 GetAttributeValue( "TransactionKey" ),
@@ -346,6 +348,11 @@ namespace Rock.CyberSource
             var reportParams = new Dictionary<string, string>();
             reportParams.Add( "start_date", startDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
             reportParams.Add( "end_date", endDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
+
+            // if the date isn't current, foreach that ish
+            // payments.add( new data )
+
+
 
             DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
             if ( dt != null )
