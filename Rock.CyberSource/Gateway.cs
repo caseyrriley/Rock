@@ -24,6 +24,8 @@ namespace Rock.CyberSource
     [ExportMetadata( "ComponentName", "CyberSource" )]
     [TextField( "Merchant ID", "The CyberSource merchant ID (case-sensitive)", true, "", "", 0, "MerchantID" )]
     [MemoField( "Transaction Key", "The CyberSource transaction key", true, "", "", 0, "TransactionKey" )]
+    [TextField( "Report User", "The CyberSource reporting user (case-sensitive)", true, "", "", 0, "ReportUser" )]
+    [TextField( "Report Password", "The CyberSource reporting password (case-sensitive)", true, "", "", 0, "ReportPassword" )]
     [CustomRadioListField( "Mode", "Mode to use for transactions", "Live,Test", true, "Live", "", 4 )]
     [TimeField( "Batch Process Time", "The Batch processing cut-off time.  When batches are created by Rock, they will use this for the start/stop when creating new batches", false, "00:00:00", "", 5 )]
     public class Gateway : GatewayComponent
@@ -338,33 +340,42 @@ namespace Rock.CyberSource
         /// <returns></returns>
         public override List<Payment> GetPayments( DateTime startDate, DateTime endDate, out string errorMessage )
         {
-            
+            errorMessage = string.Empty;
             List<Payment> paymentList = new List<Payment>();
             var reportingApi = new Reporting.Api(
                 GetAttributeValue( "MerchantID" ),
                 GetAttributeValue( "TransactionKey" ),
+                GetAttributeValue( "ReportUser" ),
+                GetAttributeValue( "ReportPassword" ),
                 GetAttributeValue( "Mode" ).Equals( "Live", StringComparison.CurrentCultureIgnoreCase )
             );
-            var reportParams = new Dictionary<string, string>();
-            reportParams.Add( "start_date", startDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
-            reportParams.Add( "end_date", endDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
 
-            // if the date isn't current, foreach that ish
-            // payments.add( new data )
-
-
-
-            DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
-            if ( dt != null )
+            TimeSpan timeDifference = endDate - startDate;
+            for ( int offset = 0; offset <= timeDifference.TotalDays; offset++ )
             {
-                var transactions = new List<Payment>();
+                DateTime offsetDate = startDate.AddDays( offset ) < endDate ? startDate.AddDays( offset ) : endDate;
+                
+                var reportParams = new Dictionary<string, string>();
+                reportParams.Add( "date", offsetDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
 
+                DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
+                if ( dt != null )
+                {
+                    var transactions = new List<Payment>();
 
-
+                    paymentList.AddRange( transactions );
+                }
             }
 
-            errorMessage = "The subscription detail report did not return any data";
-            return null;
+            if ( paymentList.Any() )
+            {                
+                return paymentList;
+            }
+            else
+            {
+                errorMessage = "The subscription detail report did not return any data";
+                return null;
+            }            
         }
 
         /// <summary>

@@ -19,7 +19,9 @@ namespace Rock.CyberSource.Reporting
     {
         public string merchantId { get; set; }
         public string transactionKey { get; set; }
-        public bool test { get; set; }
+        public string reportUser { get; set; }
+        public string password { get; set; }
+        public bool isTest { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Api"/> class.
@@ -27,11 +29,13 @@ namespace Rock.CyberSource.Reporting
         /// <param name="merchant">The merchant.</param>
         /// <param name="key">The key.</param>
         /// <param name="isTest">if set to <c>true</c> [is test].</param>
-        public Api( string merchant, string key, bool isTest = false )
+        public Api( string merchant, string key, string user, string userPassword, bool test = false )
         {
             merchantId = merchant;
             transactionKey = key;
-            test = isTest;
+            reportUser = user;
+            password = userPassword;
+            isTest = test;
         }
 
         /// <summary>
@@ -60,16 +64,10 @@ namespace Rock.CyberSource.Reporting
         {
             // Request a report
             errorMessage = string.Empty;
-                        
-            //var response = SendRequest( new ReportRequest( reportName, reportParameters ).ToXmlElement(), out errorMessage );
-            //if ( response != null )
-            //{
-            //    var reportResponse = new ReportResponse( response );
-            //    if ( reportResponse != null )
-            //    {
-            //        return GetData( reportResponse.ReportId, out errorMessage );
-            //    }
-            //}
+            
+            
+
+
             
             return null;
         }
@@ -98,18 +96,18 @@ namespace Rock.CyberSource.Reporting
         {
             errorMessage = string.Empty;
 
-            var requestElement = GetRequestElement();
-            requestElement.Add( request );
-            XDocument xdocRequest = new XDocument( new XDeclaration( "1.0", "UTF-8", "yes" ), requestElement );
+            //var requestElement = GetRequestElement();
+            //requestElement.Add( request );
+            XDocument xdocRequest = new XDocument( new XDeclaration( "1.0", "UTF-8", "yes" ) );
 
             XDocument response = null;
 
             byte[] postData = ASCIIEncoding.ASCII.GetBytes( xdocRequest.ToString() );
-            string buildUrl = ReportingApiUrl();
+            string postUrl = 
 
 
-            HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( buildUrl );
-            webRequest.Method = "POST";
+            HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( ReportingApiUrl() );
+            webRequest.Method = "GET";
             webRequest.ContentType = "text/plain";
             webRequest.ContentLength = postData.Length;
             var requestStream = webRequest.GetRequestStream();
@@ -149,15 +147,6 @@ namespace Rock.CyberSource.Reporting
             {
                 return "https://ebc.cybersource.com/ebc/DownloadReport/";
             }
-        }
-
-        /// <summary>
-        /// Gets the request element.
-        /// </summary>
-        /// <returns></returns>
-        private XElement GetRequestElement()
-        {
-            return new XElement( "reportingEngineRequest", null );
         }
     }
 }
