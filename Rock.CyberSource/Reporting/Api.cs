@@ -64,10 +64,10 @@ namespace Rock.CyberSource.Reporting
         {
             // Request a report
             errorMessage = string.Empty;
-            
-            
+            string date = reportParameters["date"];
+            string requestUrl = string.Format( "{0}/{1}/{2}/{3}.xml", ReportingApiUrl(), date, merchantId, reportName );
 
-
+            var xmlResponse = SendRequest( requestUrl, out errorMessage );
             
             return null;
         }
@@ -92,21 +92,17 @@ namespace Rock.CyberSource.Reporting
         /// <param name="request">The request.</param>
         /// <param name="errorMessage">The error message.</param>
         /// <returns></returns>
-        private XDocument SendRequest( XElement request, out string errorMessage )
+        private XDocument SendRequest( string requestUrl, out string errorMessage )
         {
             errorMessage = string.Empty;
 
             //var requestElement = GetRequestElement();
             //requestElement.Add( request );
             XDocument xdocRequest = new XDocument( new XDeclaration( "1.0", "UTF-8", "yes" ) );
-
             XDocument response = null;
 
             byte[] postData = ASCIIEncoding.ASCII.GetBytes( xdocRequest.ToString() );
-            string postUrl = 
-
-
-            HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( ReportingApiUrl() );
+            HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( requestUrl );
             webRequest.Method = "GET";
             webRequest.ContentType = "text/plain";
             webRequest.ContentLength = postData.Length;
@@ -139,13 +135,13 @@ namespace Rock.CyberSource.Reporting
         /// <returns></returns>
         private string ReportingApiUrl()
         {
-            if ( test )
+            if ( isTest )
             {
-                return "https://ebctest.cybersource.com/ebctest/DownloadReport/";
+                return "https://ebctest.cybersource.com/ebctest/DownloadReport";
             }
             else
             {
-                return "https://ebc.cybersource.com/ebc/DownloadReport/";
+                return "https://ebc.cybersource.com/ebc/DownloadReport";
             }
         }
     }

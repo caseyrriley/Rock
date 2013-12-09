@@ -356,7 +356,7 @@ namespace Rock.CyberSource
                 DateTime offsetDate = startDate.AddDays( offset ) < endDate ? startDate.AddDays( offset ) : endDate;
                 
                 var reportParams = new Dictionary<string, string>();
-                reportParams.Add( "date", offsetDate.ToString( "yyyy-MM-dd HH:mm:ss" ) );
+                reportParams.Add( "date", offsetDate.ToString( "YYYY/MM/DD" ) );
 
                 DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
                 if ( dt != null )
