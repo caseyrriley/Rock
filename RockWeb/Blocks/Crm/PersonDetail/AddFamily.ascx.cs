@@ -236,7 +236,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                         familyMemberRow.LastName = familyMember.Person.LastName;
                         familyMemberRow.Gender = familyMember.Person.Gender;
                         familyMemberRow.BirthDate = familyMember.Person.BirthDate;
-                        familyMemberRow.StatusValueId = familyMember.Person.PersonStatusValueId;
+                        familyMemberRow.ConnectionStatusValueId = familyMember.Person.ConnectionStatusValueId;
                     }
                 }
 
@@ -284,7 +284,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                 groupMember.Person.LastName = row.LastName;
                 groupMember.Person.Gender = row.Gender;
                 groupMember.Person.BirthDate = row.BirthDate;
-                groupMember.Person.PersonStatusValueId = row.StatusValueId;
+                groupMember.Person.ConnectionStatusValueId = row.ConnectionStatusValueId;
                 //groupMember.Person.GraduationDate == 
 
                 groupMember.Person.Attributes = new Dictionary<string, AttributeCache>();
@@ -326,8 +326,9 @@ namespace RockWeb.Blocks.Crm.PersonDetail
             familyMemberRow.Gender = Gender.Unknown;
             familyMemberRow.RequireGender = _requireGender;
             familyMemberRow.RequireGrade = _requireGrade;
+            familyMemberRow.ValidationGroup = BlockValidationGroup;
 
-            var familyGroupType = new GroupTypeService().Get( new Guid( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY ) );
+            var familyGroupType = GroupTypeCache.GetFamilyGroupType();
             if ( familyGroupType != null && familyGroupType.DefaultGroupRoleId.HasValue )
             {
                 familyMemberRow.RoleId = familyGroupType.DefaultGroupRoleId;
@@ -381,8 +382,7 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                         {
                             using ( new UnitOfWorkScope() )
                             {
-                                var groupTypeService = new GroupTypeService();
-                                var familyGroupType = groupTypeService.Get( new Guid( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY ) );
+                                var familyGroupType = GroupTypeCache.GetFamilyGroupType();
 
                                 if ( familyGroupType != null )
                                 {
@@ -393,10 +393,10 @@ namespace RockWeb.Blocks.Crm.PersonDetail
                                     familyGroup.CampusId = cpCampus.SelectedValueAsInt();
                                     familyMembers.ForEach( m => familyGroup.Members.Add( m ) );
 
-                                    if ( !String.IsNullOrEmpty( tbStreet1.Text ) ||
-                                         !String.IsNullOrEmpty( tbStreet2.Text ) ||
-                                         !String.IsNullOrEmpty( tbCity.Text ) ||
-                                         !String.IsNullOrEmpty( tbZip.Text ) )
+                                    if ( !String.IsNullOrWhiteSpace( tbStreet1.Text ) ||
+                                         !String.IsNullOrWhiteSpace( tbStreet2.Text ) ||
+                                         !String.IsNullOrWhiteSpace( tbCity.Text ) ||
+                                         !String.IsNullOrWhiteSpace( tbZip.Text ) )
                                     {
                                         var groupLocation = new GroupLocation();
                                         var location = new LocationService().Get(
