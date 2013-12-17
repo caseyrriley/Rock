@@ -296,7 +296,9 @@ namespace Rock.Web.UI.Controls
             RockControlHelper.CreateChildControls( this, Controls );
 
             _mergeFieldPicker = new MergeFieldPicker();
-            _mergeFieldPicker.ID = string.Format( "{0}_mfPicker", this.ID );
+            _mergeFieldPicker.ID = string.Format( "{0}_mfPicker", this.ClientID );
+            _mergeFieldPicker.CssClass = "";
+            _mergeFieldPicker.HidePickerLabel = true;
             _mergeFieldPicker.SetValue( string.Empty );
             Controls.Add( _mergeFieldPicker );
         }
@@ -330,7 +332,7 @@ var toolbar_RockCustomConfigLight =
         ['Source'],
         ['Bold', 'Italic', 'Underline', 'Strike', 'NumberedList', 'BulletedList', 'Link', 'Image', 'PasteFromWord', '-', 'RemoveFormat'],
         ['Format'], 
-        ['rockmergefield', 'rockimagebrowser', 'rockdocumentbrowser']
+        ['rockmergefield', '-', 'rockimagebrowser', '-', 'rockdocumentbrowser']
 	];
 
 var toolbar_RockCustomConfigFull =
@@ -345,14 +347,15 @@ var toolbar_RockCustomConfigFull =
         ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv', '-'], 
         ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
         ['-', 'Image', 'Table'],
-        ['rockmergefield', 'rockimagebrowser', 'rockdocumentbrowser']
+        ['rockmergefield', '-', 'rockimagebrowser', '-','rockdocumentbrowser']
 	];	
 
 CKEDITOR.replace('{0}', {{ 
   allowedContent: true,  
   toolbar: toolbar_RockCustomConfig{1},
   removeButtons: '',
-  resize_maxWidth: '{2}'{3}  
+  height: '{2}',
+  resize_maxWidth: '{3}'{4}  
 }} );
             ";
 
@@ -368,7 +371,7 @@ CKEDITOR.replace('{0}', {{
   }";
             }
 
-            string ckeditorInitScript = string.Format( ckeditorInitScriptFormat, this.ClientID, this.Toolbar.ConvertToString(), this.ResizeMaxWidth ?? 0, onkeyconfig );
+            string ckeditorInitScript = string.Format( ckeditorInitScriptFormat, this.ClientID, this.Toolbar.ConvertToString(), this.Height, this.ResizeMaxWidth ?? 0, onkeyconfig );
 
             ScriptManager.RegisterStartupScript( this, this.GetType(), "ckeditor_init_script_" + this.ClientID, ckeditorInitScript, true );
 
