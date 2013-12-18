@@ -110,9 +110,11 @@ namespace Rock.CyberSource.Reporting
             //authInfo = Convert.ToBase64String( Encoding.Default.GetBytes( authInfo ) );
             //webRequest.Headers["Authorization"] = "Basic " + authInfo;
             //webRequest.PreAuthenticate = true;
-            webRequest.Credentials = new NetworkCredential( reportUser, reportPassword );
+            CredentialCache cache = new CredentialCache();
+            cache.Add( new System.Uri( requestUrl ), "Basic", new NetworkCredential( reportUser, reportPassword ) );
+            webRequest.Credentials = cache;
             webRequest.Method = "GET";
-            webRequest.ContentType = "text/xml";
+            webRequest.ContentType = "text/plain";
             webRequest.ContentLength = postData.Length;
             var requestStream = webRequest.GetRequestStream();
             requestStream.Write( postData, 0, postData.Length );
