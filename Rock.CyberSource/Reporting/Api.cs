@@ -4,6 +4,7 @@
 // http://creativecommons.org/licenses/by-nc-sa/3.0/
 //
 using System.Collections.Generic;
+using System;
 using System.Data;
 using System.Net;
 using System.Text;
@@ -20,8 +21,8 @@ namespace Rock.CyberSource.Reporting
         public string merchantId { get; set; }
         public string transactionKey { get; set; }
         public string reportUser { get; set; }
-        public string password { get; set; }
-        public bool isTest { get; set; }
+        public string reportPassword { get; set; }
+        public bool isLive { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Api"/> class.
@@ -29,13 +30,13 @@ namespace Rock.CyberSource.Reporting
         /// <param name="merchant">The merchant.</param>
         /// <param name="key">The key.</param>
         /// <param name="isTest">if set to <c>true</c> [is test].</param>
-        public Api( string merchant, string key, string user, string userPassword, bool test = false )
+        public Api( string merchant, string key, string user, string userPassword, bool live = false )
         {
             merchantId = merchant;
             transactionKey = key;
             reportUser = user;
-            password = userPassword;
-            isTest = test;
+            reportPassword = userPassword;
+            isLive = live;
         }
 
         /// <summary>
@@ -64,11 +65,11 @@ namespace Rock.CyberSource.Reporting
         {
             // Request a report
             errorMessage = string.Empty;
-            string date = reportParameters["date"];
-            string requestUrl = string.Format( "{0}/{1}/{2}/{3}.xml", ReportingApiUrl(), date, merchantId, reportName );
+            string formattedDate = reportParameters["date"];
+            string requestUrl = string.Format( "{0}/{1}/{2}/{3}.xml", ReportingApiUrl(), formattedDate, merchantId, reportName );
 
             var xmlResponse = SendRequest( requestUrl, out errorMessage );
-            
+
             return null;
         }
 
@@ -101,10 +102,17 @@ namespace Rock.CyberSource.Reporting
             XDocument xdocRequest = new XDocument( new XDeclaration( "1.0", "UTF-8", "yes" ) );
             XDocument response = null;
 
-            byte[] postData = ASCIIEncoding.ASCII.GetBytes( xdocRequest.ToString() );
+            byte[] postData = ASCIIEncoding.ASCII.GetBytes( xdocRequest.ToString() );            
             HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( requestUrl );
+            webRequest.UserAgent = VersionInfo.VersionInfo.GetRockProductVersionFullName();
+            ServicePointManager.ServerCertificateValidationCallback = ( s, cert, chain, ssl ) => true;
+            //string authInfo = reportUser + ":" + reportPassword;
+            //authInfo = Convert.ToBase64String( Encoding.Default.GetBytes( authInfo ) );
+            //webRequest.Headers["Authorization"] = "Basic " + authInfo;
+            //webRequest.PreAuthenticate = true;
+            webRequest.Credentials = new NetworkCredential( reportUser, reportPassword );
             webRequest.Method = "GET";
-            webRequest.ContentType = "text/plain";
+            webRequest.ContentType = "text/xml";
             webRequest.ContentLength = postData.Length;
             var requestStream = webRequest.GetRequestStream();
             requestStream.Write( postData, 0, postData.Length );
@@ -135,13 +143,13 @@ namespace Rock.CyberSource.Reporting
         /// <returns></returns>
         private string ReportingApiUrl()
         {
-            if ( isTest )
+            if ( isLive )
             {
-                return "https://ebctest.cybersource.com/ebctest/DownloadReport";
+                return "https://ebc.cybersource.com/ebc/DownloadReport";
             }
             else
             {
-                return "https://ebc.cybersource.com/ebc/DownloadReport";
+                return "https://ebctest.cybersource.com/ebctest/DownloadReport";                
             }
         }
     }
