@@ -96,46 +96,29 @@ namespace Rock.CyberSource.Reporting
         private XDocument SendRequest( string requestUrl, out string errorMessage )
         {
             errorMessage = string.Empty;
-
-            //var requestElement = GetRequestElement();
-            //requestElement.Add( request );
-            XDocument xdocRequest = new XDocument( new XDeclaration( "1.0", "UTF-8", "yes" ) );
             XDocument response = null;
-
-            byte[] postData = ASCIIEncoding.ASCII.GetBytes( xdocRequest.ToString() );            
+            
             HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( requestUrl );
             webRequest.UserAgent = VersionInfo.VersionInfo.GetRockProductVersionFullName();
-            ServicePointManager.ServerCertificateValidationCallback = ( s, cert, chain, ssl ) => true;
-            //string authInfo = reportUser + ":" + reportPassword;
-            //authInfo = Convert.ToBase64String( Encoding.Default.GetBytes( authInfo ) );
-            //webRequest.Headers["Authorization"] = "Basic " + authInfo;
-            //webRequest.PreAuthenticate = true;
-            CredentialCache cache = new CredentialCache();
-            cache.Add( new System.Uri( requestUrl ), "Basic", new NetworkCredential( reportUser, reportPassword ) );
-            webRequest.Credentials = cache;
+            webRequest.Credentials = new NetworkCredential( reportUser, reportPassword );
+            webRequest.ContentType = "text/xml; encoding='utf-8'";
             webRequest.Method = "GET";
-            webRequest.ContentType = "text/plain";
-            webRequest.ContentLength = postData.Length;
-            var requestStream = webRequest.GetRequestStream();
-            requestStream.Write( postData, 0, postData.Length );
-            requestStream.Close();
 
-            using ( WebResponse webResponse = webRequest.GetResponse() )
+            using ( HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse() )
             {
                 var stream = webResponse.GetResponseStream();
-                using ( XmlReader reader = XmlReader.Create( stream ) )
+                using ( XmlReader reader = new XmlTextReader( stream ) )
                 {
                     response = XDocument.Load( reader );
-                    //var status = new RequestResponse( response );
-                    //if ( status.Code != "100" )
-                    //{
-                    //    errorMessage = status.Message;
-                    //    response = null;
-                    //}
 
+                    if ( response == null )
+                    {
+                        errorMessage = "The requested report could not be found.";
+                        return null;
+                    }                   
                 }
             }
-
+            
             return response;
         }
 
