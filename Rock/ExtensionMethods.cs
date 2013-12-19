@@ -240,7 +240,7 @@ namespace Rock
         /// <returns></returns>
         public static string Left( this string str, int length )
         {
-            if ( str.Length <= length )
+            if ( string.IsNullOrWhiteSpace(str) || str.Length <= length )
             {
                 return str;
             }
