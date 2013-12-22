@@ -40,21 +40,6 @@ namespace Rock.CyberSource.Reporting
         }
 
         /// <summary>
-        /// Gets the search.
-        /// </summary>
-        /// <param name="searchName">Name of the search.</param>
-        /// <param name="reportParameters">The report parameters.</param>
-        /// <param name="errorMessage">The error message.</param>
-        /// <returns></returns>
-        public DataTable GetSearch( string searchName, Dictionary<string, string> reportParameters, out string errorMessage )
-        {
-            // Run a search
-
-            errorMessage = string.Empty;
-            return null;
-        }
-
-        /// <summary>
         /// Gets the report.
         /// </summary>
         /// <param name="reportName">Name of the report.</param>
@@ -70,20 +55,8 @@ namespace Rock.CyberSource.Reporting
 
             var xmlResponse = SendRequest( requestUrl, out errorMessage );
 
-            return null;
-        }
+            // Fill out datatable here
 
-        /// <summary>
-        /// Gets the data.
-        /// </summary>
-        /// <param name="reportId">The report identifier.</param>
-        /// <param name="errorMessage">The error message.</param>
-        /// <returns></returns>
-        private DataTable GetData( string reportId, out string errorMessage )
-        {
-            // Request the Metadata
-
-            errorMessage = string.Empty;
             return null;
         }
 
