@@ -228,13 +228,36 @@ namespace Rock.CyberSource
             request.recurringSubscriptionInfo = GetRecurring( transaction );
             request.paySubscriptionUpdateService = new PaySubscriptionUpdateService();
             request.paySubscriptionUpdateService.run = "true";
-
-            if ( paymentInfo != null )
+            request.billTo = GetBillTo( paymentInfo );
+            request.item = GetItems( paymentInfo );
+            request.purchaseTotals = GetTotals( paymentInfo );
+            request.recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
+            
+            if ( paymentInfo is CreditCardPaymentInfo )
             {
-                request.billTo = GetBillTo( paymentInfo );
-                request.item = GetItems( paymentInfo );
-                request.purchaseTotals = GetTotals( paymentInfo );
-                request.recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
+                var cc = paymentInfo as CreditCardPaymentInfo;
+                request.card = GetCard( cc );
+            }
+            else if ( paymentInfo is ACHPaymentInfo )
+            {
+                var ach = paymentInfo as ACHPaymentInfo;
+                request.check = GetCheck( ach );
+            }
+            else if ( paymentInfo is ReferencePaymentInfo )
+            {
+                var reference = paymentInfo as ReferencePaymentInfo;
+                request.paySubscriptionCreateService.paymentRequestID = reference.TransactionCode;
+            }
+            else
+            {
+                errorMessage = "Payment type not implemented.";
+                return false;
+            }
+
+            if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
+            {
+                request.subscription = new Subscription();
+                request.subscription.paymentMethod = "check";
             }
 
             ReplyMessage reply = SubmitTransaction( request );
@@ -242,11 +265,6 @@ namespace Rock.CyberSource
             {
                 if ( reply.reasonCode.Equals( "100" ) )
                 {
-                    var transactionGuid = new Guid( reply.merchantReferenceCode );
-                    var scheduledTransaction = new FinancialScheduledTransaction { Guid = transactionGuid };
-                    scheduledTransaction.TransactionCode = reply.paySubscriptionCreateReply.subscriptionID;
-
-                    GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
                     return true;
                 }
                 else
@@ -362,6 +380,8 @@ namespace Rock.CyberSource
                 if ( dt != null )
                 {
                     var transactions = new List<Payment>();
+                    
+                    // ADD transactions to list
 
                     paymentList.AddRange( transactions );
                 }
@@ -750,8 +770,20 @@ namespace Rock.CyberSource
         private RecurringSubscriptionInfo GetRecurring( PaymentSchedule schedule )
         {
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();
-            recurringSubscriptionInfo.startDate = schedule.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
+
+            if ( !schedule.TransactionFrequencyValue.Guid.Equals( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY ) )
+            {
+                recurringSubscriptionInfo.startDate = schedule.StartDate.ToString( "yyyyMMdd" );    
+            }
+            else
+            {
+                var nextValidDate = schedule.StartDate.AddDays( -1 );
+                nextValidDate = nextValidDate.Day >= 15
+                    ? nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 1 ).AddMonths( 1 )
+                    : nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 15 );
+                recurringSubscriptionInfo.startDate = nextValidDate.ToString( "yyyyMMdd" );
+            }            
 
             SetPayPeriod( recurringSubscriptionInfo, schedule.TransactionFrequencyValue );
 
@@ -767,13 +799,15 @@ namespace Rock.CyberSource
         {
             var recurringSubscriptionInfo = new RecurringSubscriptionInfo();
             recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
-            recurringSubscriptionInfo.startDate = transaction.StartDate.ToString( "yyyyMMdd" );
             recurringSubscriptionInfo.automaticRenew = "true";
 
-            if ( transaction.TransactionFrequencyValueId > 0 )
-            {
-                SetPayPeriod( recurringSubscriptionInfo, DefinedValueCache.Read( transaction.TransactionFrequencyValueId ) );
-            }
+            // Cybersource doesn't allow the frequency or start date to be changed
+            //recurringSubscriptionInfo.startDate = transaction.StartDate.ToString( "yyyyMMdd" );
+            
+            //if ( transaction.TransactionFrequencyValueId > 0 )
+            //{
+            //    SetPayPeriod( recurringSubscriptionInfo, DefinedValueCache.Read( transaction.TransactionFrequencyValueId ) );
+            //}
 
             return recurringSubscriptionInfo;
         }
@@ -799,11 +833,6 @@ namespace Rock.CyberSource
                     recurringSubscriptionInfo.frequency = "BI-WEEKLY";
                     break;
                 case Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY:
-                    var nextValidDate = DateTime.ParseExact( recurringSubscriptionInfo.startDate, "yyyyMMdd", null ).AddDays( -1 );
-                    nextValidDate = nextValidDate.Day >= 15
-                        ? nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 1 ).AddMonths( 1 )
-                        : nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 15 );
-                    recurringSubscriptionInfo.startDate = nextValidDate.ToString( "yyyyMMdd" );
                     recurringSubscriptionInfo.frequency = "SEMI-MONTHLY";
                     break;
                 case Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_MONTHLY:
