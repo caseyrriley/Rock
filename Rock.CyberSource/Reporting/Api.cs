@@ -70,28 +70,36 @@ namespace Rock.CyberSource.Reporting
         {
             errorMessage = string.Empty;
             XDocument response = null;
-            
+
             HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create( requestUrl );
             webRequest.UserAgent = VersionInfo.VersionInfo.GetRockProductVersionFullName();
             webRequest.Credentials = new NetworkCredential( reportUser, reportPassword );
             webRequest.ContentType = "text/xml; encoding='utf-8'";
             webRequest.Method = "GET";
 
-            using ( HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse() )
+            try
             {
+                HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse();
                 var stream = webResponse.GetResponseStream();
                 using ( XmlReader reader = new XmlTextReader( stream ) )
                 {
                     response = XDocument.Load( reader );
-
                     if ( response == null )
                     {
                         errorMessage = "The requested report could not be found.";
                         return null;
-                    }                   
+                    }
                 }
             }
-            
+            catch ( WebException we )
+            {
+                using ( HttpWebResponse webResponse = (HttpWebResponse)we.Response )
+                {
+                    errorMessage = string.Format( "The requested report could not be found. Status code: {0}", webResponse.StatusCode );
+                    return null;
+                }
+            }
+
             return response;
         }
 
@@ -107,7 +115,7 @@ namespace Rock.CyberSource.Reporting
             }
             else
             {
-                return "https://ebctest.cybersource.com/ebctest/DownloadReport";                
+                return "https://ebctest.cybersource.com/ebctest/DownloadReport";
             }
         }
     }
