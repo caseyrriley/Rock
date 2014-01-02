@@ -99,25 +99,30 @@ namespace Rock.CyberSource
         public override FinancialTransaction Charge( PaymentInfo paymentInfo, out string errorMessage )
         {
             errorMessage = string.Empty;
-            RequestMessage request = GetMerchantInfo();
-            request = GetPaymentType( request, paymentInfo, errorMessage );
+            RequestMessage request = GetPaymentInfo( paymentInfo );
+            if ( request == null )
+            {
+                errorMessage = "Payment type not implemented";
+                return null;
+            }
+
             request.purchaseTotals = GetTotals( paymentInfo );
             request.billTo = GetBillTo( paymentInfo );
             request.item = GetItems( paymentInfo );            
             
-            if ( paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
+            if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
             {
-                request.ccAuthService = new CCAuthService();
-                request.ccAuthService.run = "true";
-                request.ccAuthService.commerceIndicator = "internet";
-                request.ccCaptureService = new CCCaptureService();
-                request.ccCaptureService.run = "true";
+                request.ecDebitService = new ECDebitService();
+                request.ecDebitService.commerceIndicator = "internet";
+                request.ecDebitService.run = "true";                
             }
             else
             {
-                request.ecDebitService = new ECDebitService();
-                request.ecDebitService.run = "true";
-                request.ecDebitService.commerceIndicator = "internet";
+                request.ccAuthService = new CCAuthService();
+                request.ccAuthService.commerceIndicator = "internet";
+                request.ccAuthService.run = "true";
+                request.ccCaptureService = new CCCaptureService();
+                request.ccCaptureService.run = "true";
             }
 
             ReplyMessage reply = SubmitTransaction( request );
@@ -153,8 +158,12 @@ namespace Rock.CyberSource
         public override FinancialScheduledTransaction AddScheduledPayment( PaymentSchedule schedule, PaymentInfo paymentInfo, out string errorMessage )
         {
             errorMessage = string.Empty;
-            RequestMessage request = GetMerchantInfo();
-            request = GetPaymentType( request, paymentInfo, errorMessage );
+            RequestMessage request = GetPaymentInfo( paymentInfo );
+            if ( request == null )
+            {
+                errorMessage = "Payment type not implemented";
+                return null;
+            }
 
             if ( request.recurringSubscriptionInfo == null )
             {
@@ -167,12 +176,17 @@ namespace Rock.CyberSource
             request.paySubscriptionCreateService.run = "true";
             request.purchaseTotals = GetTotals( paymentInfo );
             request.billTo = GetBillTo( paymentInfo );
-            request.item = GetItems( paymentInfo );      
-            
+            request.item = GetItems( paymentInfo );
+
+            request.subscription = new Subscription();
             if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
-            {
-                request.subscription = new Subscription();
+            {                
                 request.subscription.paymentMethod = "check";
+            }
+
+            if ( paymentInfo is ReferencePaymentInfo )
+            {
+                request.paySubscriptionCreateService.paymentRequestID = ( (ReferencePaymentInfo) paymentInfo ).TransactionCode;
             }
 
             ReplyMessage reply = SubmitTransaction( request );
@@ -210,20 +224,35 @@ namespace Rock.CyberSource
         public override bool UpdateScheduledPayment( FinancialScheduledTransaction transaction, PaymentInfo paymentInfo, out string errorMessage )
         {
             errorMessage = string.Empty;
-            RequestMessage request = GetMerchantInfo();
-            request = GetPaymentType( request, paymentInfo, errorMessage );
-            request.purchaseTotals = GetTotals( paymentInfo );
-            request.billTo = GetBillTo( paymentInfo );
-            request.item = GetItems( paymentInfo );            
-            request.paySubscriptionUpdateService = new PaySubscriptionUpdateService();
-            request.paySubscriptionUpdateService.run = "true";
-            
-            if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
+            RequestMessage request = GetPaymentInfo( paymentInfo );
+            if ( request == null )
             {
-                request.subscription = new Subscription();
-                request.subscription.paymentMethod = "check";
+                errorMessage = "Payment type not implemented";
+                return false;
             }
 
+            if ( request.recurringSubscriptionInfo == null )
+            {
+                request.recurringSubscriptionInfo = new RecurringSubscriptionInfo();
+                request.recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
+            }
+            request.recurringSubscriptionInfo.amount = paymentInfo.Amount.ToString();
+            request.paySubscriptionUpdateService = new PaySubscriptionUpdateService();
+            request.paySubscriptionUpdateService.run = "true";
+            request.purchaseTotals = GetTotals( paymentInfo );
+            request.billTo = GetBillTo( paymentInfo );
+            request.item = GetItems( paymentInfo );
+            
+            request.subscription = new Subscription();
+            if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid ( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
+            {
+                request.subscription.paymentMethod = "check";
+            }
+            else
+            {
+                request.subscription.paymentMethod = "credit card";
+            }
+            
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
             {
@@ -325,6 +354,7 @@ namespace Rock.CyberSource
         {
             errorMessage = string.Empty;
             List<Payment> paymentList = new List<Payment>();
+            var reportParams = new Dictionary<string, string>();
             var reportingApi = new Reporting.Api(
                 GetAttributeValue( "MerchantID" ),
                 GetAttributeValue( "TransactionKey" ),
@@ -337,8 +367,6 @@ namespace Rock.CyberSource
             for ( int offset = 0; offset <= timeDifference.TotalDays; offset++ )
             {
                 DateTime offsetDate = startDate.AddDays( offset ) < endDate ? startDate.AddDays( offset ) : endDate;
-                
-                var reportParams = new Dictionary<string, string>();
                 reportParams.Add( "date", offsetDate.ToString( "yyyy/MM/dd" ) );
 
                 DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
@@ -350,6 +378,8 @@ namespace Rock.CyberSource
 
                     paymentList.AddRange( transactions );
                 }
+
+                reportParams.Clear();
             }
 
             if ( paymentList.Any() )
@@ -464,10 +494,10 @@ namespace Rock.CyberSource
             {
                 // Missing field or fields
                 case 101:
-                    return "\nThe following required fields are missing: " + string.Join( "\n", reply.missingField );
+                    return "\nThe following required fields are missing: " + string.Join( "\n", reply.missingField ?? new string[0] );
                 // Invalid field or fields
                 case 102:
-                    return "\nThe following fields are invalid: " + string.Join( "\n", reply.invalidField );
+                    return "\nThe following fields are invalid: " + string.Join( "\n", reply.invalidField ?? new string[0] );
                 // Partial payment approved
                 case 110:
                     return "\nOnly a partial amount of this transaction was approved.";
@@ -548,7 +578,6 @@ namespace Rock.CyberSource
         private RequestMessage GetMerchantInfo()
         {
             RequestMessage request = new RequestMessage();
-
             request.merchantID = GetAttributeValue( "MerchantID" );
             request.merchantReferenceCode = Guid.NewGuid().ToString();
             request.clientLibraryVersion = Environment.Version.ToString();
@@ -564,12 +593,13 @@ namespace Rock.CyberSource
         }
 
         /// <summary>
-        /// Gets the type of the payment.
+        /// Gets the merchant information.
         /// </summary>
-        /// <param name="paymentInfo">The payment information.</param>
         /// <returns></returns>
-        private RequestMessage GetPaymentType( RequestMessage request, PaymentInfo paymentInfo, string errorMessage )
+        private RequestMessage GetPaymentInfo( PaymentInfo paymentInfo )
         {
+            RequestMessage request = GetMerchantInfo();
+
             if ( paymentInfo is CreditCardPaymentInfo )
             {
                 var cc = paymentInfo as CreditCardPaymentInfo;
@@ -585,11 +615,9 @@ namespace Rock.CyberSource
                 var reference = paymentInfo as ReferencePaymentInfo;
                 request.recurringSubscriptionInfo = new RecurringSubscriptionInfo();
                 request.recurringSubscriptionInfo.subscriptionID = reference.ReferenceNumber;
-                var test = reference.TransactionCode;
             }
             else
             {
-                errorMessage = "Payment type not implemented.";
                 return null;
             }
 
@@ -611,7 +639,7 @@ namespace Rock.CyberSource
             billingInfo.street1 = paymentInfo.Street.Left( 50 );            // up to 50 chars
             billingInfo.city = paymentInfo.City.Left( 50 );                 // up to 50 chars
             billingInfo.state = paymentInfo.State.Left( 2 );                // only 2 chars
-            billingInfo.postalCode = paymentInfo.Zip.Length > 5
+            billingInfo.postalCode = ( !string.IsNullOrWhiteSpace( paymentInfo.Zip ) && paymentInfo.Zip.Length > 5 )
                 ? Regex.Replace( paymentInfo.Zip, @"^(.{5})(.{4})$", "$1-$2" )
                 : paymentInfo.Zip;                                          // 9 chars with a separating -
 
