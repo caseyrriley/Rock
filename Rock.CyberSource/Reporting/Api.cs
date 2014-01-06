@@ -54,8 +54,17 @@ namespace Rock.CyberSource.Reporting
             string requestUrl = string.Format( "{0}/{1}/{2}/{3}.xml", ReportingApiUrl(), formattedDate, merchantId, reportName );
 
             var xmlResponse = SendRequest( requestUrl, out errorMessage );
+            if ( xmlResponse != null )
+            {
+                DataTable dt = new DataTable();
+                // xml columns .foreach( c => dt.Columns.Add( c ) );                
+                //{                
+                    var dataRow = dt.NewRow();
+                    dt.Rows.Add( dataRow );
+                //}
 
-            // Fill out datatable here
+                return dt;
+            }            
 
             return null;
         }
@@ -83,12 +92,7 @@ namespace Rock.CyberSource.Reporting
                 var stream = webResponse.GetResponseStream();
                 using ( XmlReader reader = new XmlTextReader( stream ) )
                 {
-                    response = XDocument.Load( reader );
-                    if ( response == null )
-                    {
-                        errorMessage = "The requested report could not be found.";
-                        return null;
-                    }
+                    response = XDocument.Load( reader );                    
                 }
             }
             catch ( WebException we )
