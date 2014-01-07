@@ -370,7 +370,7 @@ namespace Rock.CyberSource
                 reportParams.Add( "date", offsetDate.ToString( "yyyy/MM/dd" ) );
 
                 DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
-                if ( dt != null )
+                if ( dt != null && dt.Rows.Count > 0 )
                 {
                     var transactions = new List<Payment>();
                     
@@ -388,7 +388,7 @@ namespace Rock.CyberSource
             }
             else
             {
-                errorMessage = "The subscription detail report did not return any data";
+                errorMessage = "The subscription detail report did not return any data for the timeframe";
                 return null;
             }            
         }
