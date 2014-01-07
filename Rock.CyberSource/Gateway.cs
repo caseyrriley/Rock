@@ -197,7 +197,7 @@ namespace Rock.CyberSource
                     var transactionGuid = new Guid( reply.merchantReferenceCode );
                     var scheduledTransaction = new FinancialScheduledTransaction { Guid = transactionGuid };
                     scheduledTransaction.TransactionCode = reply.paySubscriptionCreateReply.subscriptionID;
-
+                    scheduledTransaction.GatewayScheduleId = reply.paySubscriptionCreateReply.subscriptionID;
                     GetScheduledPaymentStatus( scheduledTransaction, out errorMessage );
                     return scheduledTransaction;
                 }
@@ -372,11 +372,21 @@ namespace Rock.CyberSource
                 DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
                 if ( dt != null && dt.Rows.Count > 0 )
                 {
-                    var transactions = new List<Payment>();
-                    
-                    // ADD transactions to list
+                    foreach( DataRow row in dt.Rows )
+                    {
+                        var payment = new Payment();
 
-                    paymentList.AddRange( transactions );
+                        decimal amount = decimal.MinValue;
+                        payment.Amount = decimal.TryParse( row["Amount"].ToString(), out amount ) ? amount : 0.0M;
+
+                        var time = DateTime.MinValue;
+                        payment.TransactionDateTime = DateTime.TryParse( row["Time"].ToString(), out time ) ? time : DateTime.MinValue;
+
+                        payment.TransactionCode = row["Code"].ToString();
+                        payment.GatewayScheduleId = row["Schedule"].ToString();
+                        payment.ScheduleActive = row["Status"].ToString() == "CURRENT";
+                        paymentList.Add( payment );
+                    }                    
                 }
 
                 reportParams.Clear();
@@ -423,6 +433,18 @@ namespace Rock.CyberSource
 
             return string.Empty;
         }
+
+        /// <summary>
+        /// Gets the reference number needed to process future payments from this scheduled transaction.
+        /// </summary>
+        /// <param name="scheduledTransaction">The scheduled transaction.</param>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns></returns>
+        public override string GetReferenceNumber( FinancialScheduledTransaction scheduledTransaction, out string errorMessage )
+        {
+            errorMessage = string.Empty;
+            return scheduledTransaction.TransactionCode;
+        } 
 
         #endregion
 
