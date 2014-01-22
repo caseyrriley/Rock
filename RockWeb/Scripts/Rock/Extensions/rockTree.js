@@ -378,6 +378,9 @@
         
         // Sets selected nodes given an array of ids
         setSelected: function (array) {
+            this.selectedNodes = [];
+            _clearSelectedNodes(this.nodes);
+
             var currentNode,
                 i;
 
@@ -386,6 +389,10 @@
 
                 if (currentNode) {
                     currentNode.isSelected = true;
+                    this.selectedNodes.push(currentNode);
+
+                    // trigger the node as selected
+                    this.$el.trigger('rockTree:selected', currentNode.id);
                 }
             }
         },
@@ -393,6 +400,9 @@
         // Wire up DOM events for rockTree instance
         initTreeEvents: function () {
             var self = this;
+
+            // remove event to make sure it doesn't get attached multiple times
+            this.$el.off('click');
 
             // Expanding or collapsing a node...
             this.$el.on('click', '.rocktree-folder > .rocktree-icon', function (e) {
@@ -455,7 +465,8 @@
                     var $li = $(li);
                     selectedNodes.push({
                         id: $li.attr('data-id'),
-                        name: $li.find('span').text()
+                        // get the li text excluding child text
+                        name: $li.contents(':not(ul)').text()
                     });
                 });
 
@@ -495,8 +506,9 @@
             }
             else
             {
-                // use the existing rocktree but update the settings
+                // use the existing rocktree but update the settings and clean up selectedNodes
                 rockTree.options = settings;
+                rockTree.selectedNodes = [];
             }
 
             $el.data('rockTree', rockTree);

@@ -1,7 +1,18 @@
+﻿// <copyright>
+// Copyright 2013 by the Spark Development Network
 //
-// THIS WORK IS LICENSED UNDER A CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-
-// SHAREALIKE 3.0 UNPORTED LICENSE:
-// http://creativecommons.org/licenses/by-nc-sa/3.0/
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
 //
 using System;
 using System.Collections.Generic;
@@ -356,49 +367,82 @@ namespace Rock.Model
         /// Returns a <see cref="Rock.Model.Person"/> by their PersonId
         /// </summary>
         /// <param name="id">The <see cref="System.Int32"/> representing the Id of the <see cref="Rock.Model.Person"/> to search for.</param>
-        /// <param name="followMerges">A <see cref="System.Boolean"/> flag indicating that the provided PersonId should be checked against the <see cref="Rock.Model.PersonMerged"/> list.
-        /// When <c>true</c> the <see cref="Rock.Model.PersonMerged"/> log will be checked for the PersonId, otherwise <c>false</c>.</param>
+        /// <param name="followMerges">A <see cref="System.Boolean"/> flag indicating that the provided PersonId should be checked against the <see cref="Rock.Model.PersonAlias"/> list.
+        /// When <c>true</c> the <see cref="Rock.Model.PersonAlias"/> log will be checked for the PersonId, otherwise <c>false</c>.</param>
         /// <returns>The <see cref="Rock.Model.Person"/> associated with the provided Id, otherwise null.</returns>
         public Person Get( int id, bool followMerges )
         {
-            if ( followMerges )
+            var person = Get( id );
+            if (person != null)
             {
-                id = new PersonMergedService().Current( id );
+                return person;
             }
-            return Get( id );
+
+            if (followMerges )
+            {
+                var personAlias = new PersonAliasService().GetByAliasId( id );
+                if (personAlias != null)
+                {
+                    return personAlias.Person;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
         /// Returns a <see cref="Rock.Model.Person"/> by their Guid.
         /// </summary>
         /// <param name="guid">A <see cref="System.Guid"/> representing the <see cref="Rock.Model.Person">Person's</see> Guid identifier.</param>
-        /// <param name="followMerges">A <see cref="System.Boolean"/> flag indicating that the provided Guid should be checked against the <see cref="Rock.Model.PersonMerged"/> list.
-        /// When <c>true</c> the <see cref="Rock.Model.PersonMerged"/> log will be checked for the Guid, otherwise <c>false</c>.</param>
+        /// <param name="followMerges">A <see cref="System.Boolean"/> flag indicating that the provided Guid should be checked against the <see cref="Rock.Model.PersonAlias"/> list.
+        /// When <c>true</c> the <see cref="Rock.Model.PersonAlias"/> log will be checked for the Guid, otherwise <c>false</c>.</param>
         /// <returns>The <see cref="Rock.Model.Person"/> associated with the provided Guid, otherwise null.</returns>
         public Person Get( Guid guid, bool followMerges )
         {
-            if ( followMerges )
+            var person = Get( guid );
+            if (person != null)
             {
-                guid = new PersonMergedService().Current( guid );
+                return person;
             }
-            return Get( guid );
+
+            if (followMerges )
+            {
+                var personAlias = new PersonAliasService().GetByAliasGuid( guid );
+                if (personAlias != null)
+                {
+                    return personAlias.Person;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
-        /// Returns a <see cref="Rock.Model.Person"/> by their encrypted key value.
+        /// Returns a <see cref="Rock.Model.Person" /> by their encrypted key value.
         /// </summary>
-        /// <param name="encryptedKey">A <see cref="System.String"/> containing an encrypted key value.</param>
-        /// <param name="followMergeTrail">A <see cref="System.Boolean"/> flag indicating that the provided Guid should be checked against the <see cref="Rock.Model.PersonMerged"/> list.
-        /// When <c>true</c> the <see cref="Rock.Model.PersonMerged"/> log will be checked for the Guid, otherwise <c>false</c>.</param>
+        /// <param name="encryptedKey">A <see cref="System.String" /> containing an encrypted key value.</param>
+        /// <param name="followMerges">if set to <c>true</c> [follow merges].</param>
         /// <returns>
-        /// The <see cref="Rock.Model.Person"/> associated with the provided Key, otherwise null.
+        /// The <see cref="Rock.Model.Person" /> associated with the provided Key, otherwise null.
         /// </returns>
-        public Person GetByEncryptedKey( string encryptedKey, bool followMergeTrail )
+        public Person GetByEncryptedKey( string encryptedKey, bool followMerges )
         {
-            if ( followMergeTrail )
-                encryptedKey = new PersonMergedService().Current( encryptedKey );
+            var person = GetByEncryptedKey( encryptedKey );
+            if (person != null)
+            {
+                return person;
+            }
 
-            return GetByEncryptedKey( encryptedKey );
+            if ( followMerges )
+            {
+                var personAlias = new PersonAliasService().GetByAliasEncryptedKey(encryptedKey);
+                if (personAlias != null)
+                {
+                    return personAlias.Person;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

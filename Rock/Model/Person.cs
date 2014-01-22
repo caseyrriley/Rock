@@ -1,7 +1,18 @@
+﻿// <copyright>
+// Copyright 2013 by the Spark Development Network
 //
-// THIS WORK IS LICENSED UNDER A CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-
-// SHAREALIKE 3.0 UNPORTED LICENSE:
-// http://creativecommons.org/licenses/by-nc-sa/3.0/
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
 //
 using System;
 using System.Collections.Generic;
@@ -148,6 +159,7 @@ namespace Rock.Model
         /// </remarks>
         [MaxLength( 50 )]
         [DataMember]
+        [Previewable]
         [MergeField]
         public string NickName { get; set; }
 
@@ -351,6 +363,23 @@ namespace Rock.Model
 
         #endregion
 
+        #region Constructors
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Person"/> class.
+        /// </summary>
+        public Person() : base()
+        {
+            _users = new Collection<UserLogin>();
+            _emailTemplates = new Collection<EmailTemplate>();
+            _phoneNumbers = new Collection<PhoneNumber>();
+            _members = new Collection<GroupMember>();
+            _attendances = new Collection<Attendance>();
+            _aliases = new Collection<PersonAlias>();
+        }
+
+        #endregion
+
         #region Virtual Properties
 
         /// <summary>
@@ -468,7 +497,7 @@ namespace Rock.Model
         [MergeField]
         public virtual ICollection<UserLogin> Users
         {
-            get { return _users ?? ( _users = new Collection<UserLogin>() ); }
+            get { return _users; }
             set { _users = value; }
         }
         private ICollection<UserLogin> _users;
@@ -482,7 +511,7 @@ namespace Rock.Model
         [DataMember]
         public virtual ICollection<EmailTemplate> EmailTemplates
         {
-            get { return _emailTemplates ?? ( _emailTemplates = new Collection<EmailTemplate>() ); }
+            get { return _emailTemplates; }
             set { _emailTemplates = value; }
         }
         private ICollection<EmailTemplate> _emailTemplates;
@@ -497,7 +526,7 @@ namespace Rock.Model
         [MergeField]
         public virtual ICollection<PhoneNumber> PhoneNumbers
         {
-            get { return _phoneNumbers ?? ( _phoneNumbers = new Collection<PhoneNumber>() ); }
+            get { return _phoneNumbers; }
             set { _phoneNumbers = value; }
         }
         private ICollection<PhoneNumber> _phoneNumbers;
@@ -513,7 +542,7 @@ namespace Rock.Model
         [MergeField]
         public virtual ICollection<GroupMember> Members
         {
-            get { return _members ?? ( _members = new Collection<GroupMember>() ); }
+            get { return _members; }
             set { _members = value; }
         }
         private ICollection<GroupMember> _members;
@@ -528,10 +557,25 @@ namespace Rock.Model
         [MergeField]
         public virtual ICollection<Attendance> Attendances
         {
-            get { return _attendances ?? ( _attendances = new Collection<Attendance>() ); }
+            get { return _attendances; }
             set { _attendances = value; }
         }
         private ICollection<Attendance> _attendances;
+
+        /// <summary>
+        /// Gets or sets the aliases for this person
+        /// </summary>
+        /// <value>
+        /// The aliases.
+        /// </value>
+        [DataMember]
+        [MergeField]
+        public virtual ICollection<PersonAlias> Aliases
+        {
+            get { return _aliases; }
+            set { _aliases = value; }
+        }
+        private ICollection<PersonAlias> _aliases;
 
         /// <summary>
         /// Gets or sets the <see cref="Rock.Model.DefinedValue"/> representing the Person's marital status.
@@ -893,6 +937,30 @@ namespace Rock.Model
             }
         }
 
+        /// <summary>
+        /// Gets the photo image tag.
+        /// </summary>
+        /// <param name="person">The person.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <param name="className">Name of the class.</param>
+        /// <returns></returns>
+        public static string GetPhotoImageTag( Person person, int? maxWidth = null, int? maxHeight = null, string className = "" )
+        {
+            int? photoId = null;
+            Gender gender = Gender.Male;
+            string altText = string.Empty;
+
+            if ( person != null )
+            {
+                photoId = person.PhotoId;
+                gender = person.Gender;
+                altText = person.FullName;
+            }
+
+            return Person.GetPhotoImageTag( photoId, gender, maxWidth, maxHeight, altText, className );
+        }
+        
         /// <summary>
         /// Gets the photo image tag.
         /// </summary>

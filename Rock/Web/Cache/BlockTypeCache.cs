@@ -1,7 +1,18 @@
-﻿//
-// THIS WORK IS LICENSED UNDER A CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-
-// SHAREALIKE 3.0 UNPORTED LICENSE:
-// http://creativecommons.org/licenses/by-nc-sa/3.0/
+﻿// <copyright>
+// Copyright 2013 by the Spark Development Network
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
 //
 using System;
 using System.Collections.Generic;
@@ -155,9 +166,12 @@ namespace Rock.Web.Cache
                     blockType = new BlockTypeCache( blockTypeModel );
 
                     var cachePolicy = new CacheItemPolicy();
-                    cache.Set( cacheKey, blockType, cachePolicy );
-                    cache.Set( blockType.Guid.ToString(), blockType.Id, cachePolicy );
                     AddChangeMonitor( cachePolicy, blockType.Path );
+                    cache.Set( cacheKey, blockType, cachePolicy );
+
+                    var guidCachePolicy = new CacheItemPolicy();
+                    AddChangeMonitor( guidCachePolicy, blockType.Path );
+                    cache.Set( blockType.Guid.ToString(), blockType.Id, guidCachePolicy );
 
                     return blockType;
                 }
@@ -192,9 +206,12 @@ namespace Rock.Web.Cache
                     var blockType = new BlockTypeCache( blockTypeModel );
 
                     var cachePolicy = new CacheItemPolicy();
-                    cache.Set( BlockTypeCache.CacheKey( blockType.Id ), blockType, cachePolicy );
-                    cache.Set( blockType.Guid.ToString(), blockType.Id, cachePolicy );
                     AddChangeMonitor( cachePolicy, blockType.Path );
+                    cache.Set( BlockTypeCache.CacheKey( blockType.Id ), blockType, cachePolicy );
+
+                    var guidCachePolicy = new CacheItemPolicy();
+                    AddChangeMonitor( guidCachePolicy, blockType.Path );
+                    cache.Set( blockType.Guid.ToString(), blockType.Id, guidCachePolicy );
 
                     return blockType;
                 }
@@ -226,9 +243,12 @@ namespace Rock.Web.Cache
                 blockType = new BlockTypeCache( blockTypeModel );
 
                 var cachePolicy = new CacheItemPolicy();
-                cache.Set( cacheKey, blockType, cachePolicy );
-                cache.Set( blockType.Guid.ToString(), blockType.Id, cachePolicy );
                 AddChangeMonitor( cachePolicy, blockType.Path );
+                cache.Set( cacheKey, blockType, cachePolicy );
+
+                var guidCachePolicy = new CacheItemPolicy();
+                AddChangeMonitor( guidCachePolicy, blockType.Path );
+                cache.Set( blockType.Guid.ToString(), blockType.Id, guidCachePolicy );
 
                 return blockType;
             }

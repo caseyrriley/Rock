@@ -1,9 +1,19 @@
-﻿//
-// THIS WORK IS LICENSED UNDER A CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-
-// SHAREALIKE 3.0 UNPORTED LICENSE:
-// http://creativecommons.org/licenses/by-nc-sa/3.0/
+﻿// <copyright>
+// Copyright 2013 by the Spark Development Network
 //
-
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
+//
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -30,31 +40,38 @@ namespace RockWeb
         /// <returns></returns>
         public override byte[] GetFileBytes( HttpContext context, HttpPostedFile uploadedFile )
         {
-            Bitmap bmp = new Bitmap( uploadedFile.InputStream );
-
-            // Check to see if we should flip the image.
-            var exif = new EXIFextractor( ref bmp, "\n" );
-            if ( exif["Orientation"] != null )
+            if ( uploadedFile.ContentType == "image/svg+xml" )
             {
-                RotateFlipType flip = OrientationToFlipType( exif["Orientation"].ToString() );
-                if ( flip != RotateFlipType.RotateNoneFlipNone ) // don't flip if orientation is correct
+                return base.GetFileBytes(context, uploadedFile);
+            }
+            else
+            {
+                Bitmap bmp = new Bitmap( uploadedFile.InputStream );
+
+                // Check to see if we should flip the image.
+                var exif = new EXIFextractor( ref bmp, "\n" );
+                if ( exif["Orientation"] != null )
                 {
-                    bmp.RotateFlip( flip );
-                    exif.setTag( 0x112, "1" ); // reset orientation tag
+                    RotateFlipType flip = OrientationToFlipType( exif["Orientation"].ToString() );
+                    if ( flip != RotateFlipType.RotateNoneFlipNone ) // don't flip if orientation is correct
+                    {
+                        bmp.RotateFlip( flip );
+                        exif.setTag( 0x112, "1" ); // reset orientation tag
+                    }
                 }
-            }
 
-            if ( context.Request.QueryString["enableResize"] != null )
-            {
-                Bitmap resizedBmp = RoughResize( bmp, 1024, 768 );
-                bmp = resizedBmp;
-            }
+                if ( context.Request.QueryString["enableResize"] != null )
+                {
+                    Bitmap resizedBmp = RoughResize( bmp, 1024, 768 );
+                    bmp = resizedBmp;
+                }
 
-            using ( var stream = new MemoryStream() )
-            {
-                bmp.Save( stream, ContentTypeToImageFormat( uploadedFile.ContentType ) );
-                byte[] result = stream.ToArray();
-                return result;
+                using ( var stream = new MemoryStream() )
+                {
+                    bmp.Save( stream, ContentTypeToImageFormat( uploadedFile.ContentType ) );
+                    byte[] result = stream.ToArray();
+                    return result;
+                }
             }
         }
 

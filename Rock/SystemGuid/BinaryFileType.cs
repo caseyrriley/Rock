@@ -1,9 +1,19 @@
-﻿//
-// THIS WORK IS LICENSED UNDER A CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-
-// SHAREALIKE 3.0 UNPORTED LICENSE:
-// http://creativecommons.org/licenses/by-nc-sa/3.0/
+﻿// <copyright>
+// Copyright 2013 by the Spark Development Network
 //
-
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
+//
 using System;
 
 namespace Rock.SystemGuid
@@ -32,5 +42,15 @@ namespace Rock.SystemGuid
         /// Gets the External File file type guid
         /// </summary>
         public const string EXTERNAL_FILE = "29EFF9B7-6814-4B9F-A922-77FA0448EBFA";
+
+        /// <summary>
+        /// The Person Image file type guid
+        /// </summary>
+        public const string PERSON_IMAGE = "03BD8476-8A9F-4078-B628-5B538F967AFC";
+
+        /// <summary>
+        /// The Marketing Campaign Ad Image file type guid
+        /// </summary>
+        public const string MARKETING_CAMPAIGN_AD_IMAGE = "8DBF874C-F3C2-4848-8137-C963C431EB0B";
     }
 }
