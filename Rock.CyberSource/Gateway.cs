@@ -19,7 +19,9 @@ namespace Rock.CyberSource
     /// <summary>
     /// CyberSource Payment Gateway
     /// </summary>
-    [Description( "CyberSource Payment Gateway" )]
+    [DisplayName( "CyberSource Payment Gateway" )]
+    [Category( "Financial" )]
+    [Description( "The gateway component that interfaces with CyberSource." )]
     [Export( typeof( GatewayComponent ) )]
     [ExportMetadata( "ComponentName", "CyberSource" )]
     [TextField( "Merchant ID", "The CyberSource merchant ID (case-sensitive)", true, "", "", 0, "MerchantID" )]
@@ -108,13 +110,13 @@ namespace Rock.CyberSource
 
             request.purchaseTotals = GetTotals( paymentInfo );
             request.billTo = GetBillTo( paymentInfo );
-            request.item = GetItems( paymentInfo );            
-            
+            request.item = GetItems( paymentInfo );
+
             if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
             {
                 request.ecDebitService = new ECDebitService();
                 request.ecDebitService.commerceIndicator = "internet";
-                request.ecDebitService.run = "true";                
+                request.ecDebitService.run = "true";
             }
             else
             {
@@ -128,7 +130,7 @@ namespace Rock.CyberSource
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
             {
-                if ( reply.reasonCode.Equals( "100" ) )
+                if ( reply.reasonCode.Equals( "100" ) )  // SUCCESS
                 {
                     var transactionGuid = new Guid( reply.merchantReferenceCode );
                     var transaction = new FinancialTransaction { Guid = transactionGuid };
@@ -180,19 +182,19 @@ namespace Rock.CyberSource
 
             request.subscription = new Subscription();
             if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
-            {                
+            {
                 request.subscription.paymentMethod = "check";
             }
 
             if ( paymentInfo is ReferencePaymentInfo )
             {
-                request.paySubscriptionCreateService.paymentRequestID = ( (ReferencePaymentInfo) paymentInfo ).TransactionCode;
+                request.paySubscriptionCreateService.paymentRequestID = ( (ReferencePaymentInfo)paymentInfo ).TransactionCode;
             }
 
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
             {
-                if ( reply.reasonCode.Equals( "100" ) )
+                if ( reply.reasonCode.Equals( "100" ) ) // SUCCESS
                 {
                     var transactionGuid = new Guid( reply.merchantReferenceCode );
                     var scheduledTransaction = new FinancialScheduledTransaction { Guid = transactionGuid };
@@ -242,9 +244,9 @@ namespace Rock.CyberSource
             request.purchaseTotals = GetTotals( paymentInfo );
             request.billTo = GetBillTo( paymentInfo );
             request.item = GetItems( paymentInfo );
-            
+
             request.subscription = new Subscription();
-            if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid ( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
+            if ( !paymentInfo.CurrencyTypeValue.Guid.Equals( new Guid( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CREDIT_CARD ) ) )
             {
                 request.subscription.paymentMethod = "check";
             }
@@ -252,11 +254,11 @@ namespace Rock.CyberSource
             {
                 request.subscription.paymentMethod = "credit card";
             }
-            
+
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
             {
-                if ( reply.reasonCode.Equals( "100" ) )
+                if ( reply.reasonCode.Equals( "100" ) ) // SUCCESS
                 {
                     return true;
                 }
@@ -291,7 +293,7 @@ namespace Rock.CyberSource
             ReplyMessage reply = SubmitTransaction( request );
             if ( reply != null )
             {
-                if ( reply.reasonCode.Equals( "100" ) )
+                if ( reply.reasonCode.Equals( "100" ) ) // SUCCESS
                 {
                     return true;
                 }
@@ -324,7 +326,7 @@ namespace Rock.CyberSource
             verifyRequest.recurringSubscriptionInfo.subscriptionID = transaction.TransactionCode;
 
             ReplyMessage verifyReply = SubmitTransaction( verifyRequest );
-            if ( verifyReply.reasonCode.Equals( "100" ) )
+            if ( verifyReply.reasonCode.Equals( "100" ) ) // SUCCESS
             {
                 transaction.IsActive = verifyReply.paySubscriptionRetrieveReply.status.ToUpper() == "CURRENT";
                 var startDate = GetDate( verifyReply.paySubscriptionRetrieveReply.startDate );
@@ -372,7 +374,7 @@ namespace Rock.CyberSource
                 DataTable dt = reportingApi.GetReport( "SubscriptionDetailReport", reportParams, out errorMessage );
                 if ( dt != null && dt.Rows.Count > 0 )
                 {
-                    foreach( DataRow row in dt.Rows )
+                    foreach ( DataRow row in dt.Rows )
                     {
                         var payment = new Payment();
 
@@ -386,25 +388,25 @@ namespace Rock.CyberSource
                         payment.GatewayScheduleId = row["Schedule"].ToString();
                         payment.ScheduleActive = row["Status"].ToString() == "CURRENT";
                         paymentList.Add( payment );
-                    }                    
+                    }
                 }
 
                 reportParams.Clear();
             }
 
             if ( paymentList.Any() )
-            {                
+            {
                 return paymentList;
             }
             else
             {
                 errorMessage = "The subscription detail report did not return any data for the timeframe";
                 return null;
-            }            
+            }
         }
 
         /// <summary>
-        /// Gets the reference number from the gateway for converting a transaction to a profile.
+        /// Gets the reference number from the gateway for converting a transaction to a billing profile.
         /// </summary>
         /// <param name="transaction">The transaction.</param>
         /// <param name="errorMessage">The error message.</param>
@@ -422,7 +424,7 @@ namespace Rock.CyberSource
             request.paySubscriptionCreateService.paymentRequestID = transaction.TransactionCode;
 
             ReplyMessage reply = SubmitTransaction( request );
-            if ( reply.reasonCode == "100" )
+            if ( reply.reasonCode == "100" ) // SUCCESS
             {
                 return reply.paySubscriptionCreateReply.subscriptionID;
             }
@@ -444,7 +446,7 @@ namespace Rock.CyberSource
         {
             errorMessage = string.Empty;
             return scheduledTransaction.TransactionCode;
-        } 
+        }
 
         #endregion
 
@@ -615,7 +617,7 @@ namespace Rock.CyberSource
         }
 
         /// <summary>
-        /// Gets the merchant information.
+        /// Gets the payment information.
         /// </summary>
         /// <returns></returns>
         private RequestMessage GetPaymentInfo( PaymentInfo paymentInfo )
@@ -647,7 +649,7 @@ namespace Rock.CyberSource
         }
 
         /// <summary>
-        /// Gets the billing details.
+        /// Gets the billing details from user submitted payment info.
         /// </summary>
         /// <param name="paymentInfo">The payment information.</param>
         /// <returns></returns>
@@ -661,13 +663,20 @@ namespace Rock.CyberSource
             billingInfo.street1 = paymentInfo.Street.Left( 50 );            // up to 50 chars
             billingInfo.city = paymentInfo.City.Left( 50 );                 // up to 50 chars
             billingInfo.state = paymentInfo.State.Left( 2 );                // only 2 chars
-            billingInfo.postalCode = ( !string.IsNullOrWhiteSpace( paymentInfo.Zip ) && paymentInfo.Zip.Length > 5 )
-                ? Regex.Replace( paymentInfo.Zip, @"^(.{5})(.{4})$", "$1-$2" )
-                : paymentInfo.Zip;                                          // 9 chars with a separating -
+
+            var zip = paymentInfo.Zip;
+            if ( !string.IsNullOrWhiteSpace( zip ) && zip.Length > 5 )
+            {
+                Regex.Replace( zip, @"^(.{5})(.{4})$", "$1-$2" );           // up to 9 chars with a separating -
+            }
+
+            billingInfo.postalCode = zip;
 
             billingInfo.country = "US";                                     // only 2 chars
-            billingInfo.ipAddress = Dns.GetHostEntry( Dns.GetHostName() )
-                .AddressList.FirstOrDefault( ip => ip.AddressFamily == AddressFamily.InterNetwork ).ToString();
+
+            var ipAddr = Dns.GetHostEntry( Dns.GetHostName() ).AddressList
+                .FirstOrDefault( ip => ip.AddressFamily == AddressFamily.InterNetwork );
+            billingInfo.ipAddress = ipAddr.ToString();                      // machine IP address
 
             if ( paymentInfo is CreditCardPaymentInfo )
             {
@@ -682,7 +691,7 @@ namespace Rock.CyberSource
         }
 
         /// <summary>
-        /// Gets the bill to.
+        /// Gets the bill to from a transaction.
         /// </summary>
         /// <param name="transaction">The transaction.</param>
         /// <returns></returns>
@@ -691,7 +700,7 @@ namespace Rock.CyberSource
             BillTo billingInfo = new BillTo();
             billingInfo.customerID = transaction.AuthorizedPerson.Id.ToString();
             billingInfo.firstName = transaction.AuthorizedPerson.FirstName.Left( 50 );       // up to 50 chars
-            billingInfo.lastName = transaction.AuthorizedPerson.LastName.Left( 50 );       // up to 60 chars
+            billingInfo.lastName = transaction.AuthorizedPerson.LastName.Left( 50 );         // up to 60 chars
             billingInfo.email = transaction.AuthorizedPerson.Email.Left( 255 );              // up to 255 chars
             billingInfo.ipAddress = Dns.GetHostEntry( Dns.GetHostName() )
                 .AddressList.FirstOrDefault( ip => ip.AddressFamily == AddressFamily.InterNetwork ).ToString();
@@ -700,12 +709,12 @@ namespace Rock.CyberSource
         }
 
         /// <summary>
-        /// Gets the payment items.
+        /// Gets the total payment item.
         /// </summary>
         /// <param name="paymentInfo">The payment information.</param>
         /// <returns></returns>
         private Item[] GetItems( PaymentInfo paymentInfo )
-        {   // just get a single item for the total amount
+        {
             List<Item> itemList = new List<Item>();
 
             Item item = new Item();
@@ -723,6 +732,7 @@ namespace Rock.CyberSource
         /// <returns></returns>
         private PurchaseTotals GetTotals( PaymentInfo paymentInfo )
         {
+            // paymentInfo not used here since fixed payment installments not implemented
             PurchaseTotals purchaseTotals = new PurchaseTotals();
             purchaseTotals.currency = "USD";
             return purchaseTotals;
@@ -788,7 +798,7 @@ namespace Rock.CyberSource
 
             return check;
         }
-        
+
         /// <summary>
         /// Gets the payment start date.
         /// </summary>
@@ -800,20 +810,28 @@ namespace Rock.CyberSource
 
             if ( !schedule.TransactionFrequencyValue.Guid.Equals( Rock.SystemGuid.DefinedValue.TRANSACTION_FREQUENCY_TWICEMONTHLY ) )
             {
-                startDate = schedule.StartDate.ToString( "yyyyMMdd" );    
+                startDate = schedule.StartDate.ToString( "yyyyMMdd" );
             }
             else
             {
-                var nextValidDate = schedule.StartDate.AddDays( -1 );
-                nextValidDate = nextValidDate.Day >= 15
-                    ? nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 1 ).AddMonths( 1 )
-                    : nextValidDate = new DateTime( nextValidDate.Year, nextValidDate.Month, 15 );
-                startDate = nextValidDate.ToString( "yyyyMMdd" );
-            }            
+                // determine the next valid day on a twice monthly schedule;
+                // today's date is not a valid option (enforced in UI)
+                var dateOffset = schedule.StartDate.AddDays( -1 );
+                if ( dateOffset.Day >= 15 )
+                {
+                    dateOffset = new DateTime( dateOffset.Year, dateOffset.Month, 1 ).AddMonths( 1 );
+                }
+                else 
+                {
+                    dateOffset = new DateTime( dateOffset.Year, dateOffset.Month, 15 );
+                }
+                
+                startDate = dateOffset.ToString( "yyyyMMdd" );
+            }
 
             return startDate;
         }
-        
+
         /// <summary>
         /// Gets the payment frequency.
         /// </summary>
@@ -822,7 +840,7 @@ namespace Rock.CyberSource
         private string GetFrequency( PaymentSchedule schedule )
         {
             string frequency = string.Empty;
-            
+
             var selectedFrequencyGuid = schedule.TransactionFrequencyValue.Guid.ToString().ToUpper();
             switch ( selectedFrequencyGuid )
             {
@@ -868,7 +886,8 @@ namespace Rock.CyberSource
                     nextDate = startDate.AddDays( 14 );
                     break;
                 case "SEMI-MONTHLY":
-                    nextDate = startDate.Day >= 15 ? new DateTime( startDate.Year, startDate.Month, 1 ).AddMonths( 1 )
+                    nextDate = startDate.Day >= 15 
+                        ? new DateTime( startDate.Year, startDate.Month, 1 ).AddMonths( 1 )
                         : new DateTime( startDate.Year, startDate.Month, 15 );
                     break;
                 case "MONTHLY":
