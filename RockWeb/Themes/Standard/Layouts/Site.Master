@@ -52,16 +52,19 @@
     <form id="form1" runat="server">
 
         <!-- Page Header -->
-        <header>
+        <header class="masthead">
+
+            <div class="container">
+                <Rock:Zone Name="Header" runat="server" />
+            </div>
         
-            <!-- Brand Bar -->
-            <nav class="navbar navbar-inverse navbar-static-top">
+            <!-- Nav Bar -->
+            <nav class="navbar navbar-static-top">
                 <div class="container">
 			        <div class="navbar-header">
                         <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".navbar-collapse">
                             <i class="fa fa-bars"></i>
                         </button>
-                        <Rock:Zone Name="Header" runat="server" />
 			        </div>	
                     <div class="navbar-collapse collapse">   
                         <!-- Main Navigation -->

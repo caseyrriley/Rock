@@ -3,6 +3,7 @@
 // -------------------------
 @import "../../../Styles/_rock-core.less";
 @import "../../../Styles/_rock-variables.less";
+@import "../../../Styles/bootstrap/variables.less";
 @import "_variables.less";
 
 
@@ -45,16 +46,35 @@ a:hover i.fs
 // 3. Theme Styling 
 // -------------------------
 
-header {
+.masthead {
+    margin-bottom: @spacing-xl-px;
+    border-bottom: 1px solid @gray-lighter;
+    .navbar {
+        margin-bottom: 0;
+    }
     .page-menu,
     .login-status {
         float: right;
+    }
+    .brand-tag {
+        position: absolute;
+        display: inline-block;
+        background: @accent-color;
+        padding: @spacing-lg-px @spacing-md-px @spacing-md-px;
+        z-index: 100;
+        margin-left: @spacing-xl-px;
+        top: -2px;
+        .box-shadow(0 2px 1px rgba(0,0,0,.3));
+
+        .logo {
+            height: 40px;
+        }
     }
 }
 
 // homepage items
 #ad-rotator {
-    margin: 0  -@grid-gutter-width/2 @spacing-lg-px;
+    margin: -@spacing-xl-px  -@grid-gutter-width/2 @spacing-lg-px;
 
     .item {
         img {
@@ -136,7 +156,8 @@ footer {
 // Small devices (tablets, 768px and up)
 @media (min-width: @screen-sm-min) {
     #ad-rotator {
-        margin: @spacing-lg-px initial;
+        margin-left: initial;
+        margin-right: initial;
     }
 }
 
