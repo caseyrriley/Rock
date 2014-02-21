@@ -3190,10 +3190,45 @@ a:hover i.fs {
   height: 40px;
 }
 #ad-rotator {
-  margin: -60px -15px 30px;
+  margin: -60px -15px 0;
 }
 #ad-rotator .item img {
   width: 100%;
+}
+.join-us {
+  max-width: 40em;
+  margin: 0 auto 30px;
+  padding: 0 30px;
+  background: #eeeeee;
+  color: #333333;
+}
+.join-us:before,
+.join-us:after {
+  content: " ";
+  /* 1 */
+  display: table;
+  /* 2 */
+}
+.join-us:after {
+  clear: both;
+}
+.join-us .heading {
+  text-align: center;
+  margin: 30px 0;
+}
+.join-us .map {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.join-us ul {
+  padding-left: 3.3em;
+}
+.join-us p {
+  margin-left: 2.1em;
+}
+.join-us [class^=col] {
+  margin-bottom: 30px;
 }
 .ad-list .ad {
   margin-bottom: 30px;

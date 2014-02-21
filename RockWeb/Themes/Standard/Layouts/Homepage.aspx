@@ -27,15 +27,11 @@
             <span class="ajax-error-message"></span>
         </div>
 
-        <div class="row">
-            <div class="col-md-12">
-                <Rock:Zone Name="Sub Feature" runat="server" />
-            </div>
-        </div>
+        <Rock:Zone Name="Section A" runat="server" />
 
         <div class="row">
             <div class="col-md-12">
-                <Rock:Zone Name="Section A" runat="server" />
+                <Rock:Zone Name="Sub Feature" runat="server" />
             </div>
         </div>
 

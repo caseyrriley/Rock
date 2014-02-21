@@ -74,13 +74,36 @@ a:hover i.fs
 
 // homepage items
 #ad-rotator {
-    margin: -@spacing-xl-px  -@grid-gutter-width/2 @spacing-lg-px;
+    margin: -@spacing-xl-px  -@grid-gutter-width/2 0;
 
     .item {
         img {
             width: 100%;
         }
     }
+}
+
+.join-us {
+    .clearfix;
+    max-width: 40em;
+    margin: 0 auto @spacing-lg-px;
+    padding: 0 @spacing-lg-px;
+    background: @accent-light-color;
+    color: @accent-light-text-color;
+
+    .heading {
+        text-align: center;
+        margin: @spacing-lg-px 0;
+    }
+
+    .map {
+        .img-responsive;
+    }
+
+    ul { padding-left: 3.3em; }
+    p { margin-left: 2.1em; }
+
+    [class^=col] { margin-bottom: @spacing-lg-px; }
 }
 
 .ad-list {
