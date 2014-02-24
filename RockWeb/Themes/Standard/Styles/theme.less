@@ -49,26 +49,22 @@ a:hover i.fs
 .masthead {
     margin-bottom: @spacing-xl-px;
     border-bottom: 1px solid @gray-lighter;
+    .brand-tag {
+        display: inline-block;
+        padding: 10px;
+        .logo { height: 30px; }
+    }
     .navbar {
         margin-bottom: 0;
+        background: @accent-color;
+    }
+    .navbar-toggle {
+        background: @accent-color;
+        &:hover { background: darken(@accent-color, 10%); }
     }
     .page-menu,
     .login-status {
         float: right;
-    }
-    .brand-tag {
-        position: absolute;
-        display: inline-block;
-        background: @accent-color;
-        padding: @spacing-lg-px @spacing-md-px @spacing-md-px;
-        z-index: 100;
-        margin-left: @spacing-xl-px;
-        top: -2px;
-        .box-shadow(0 2px 1px rgba(0,0,0,.3));
-
-        .logo {
-            height: 40px;
-        }
     }
 }
 
@@ -85,34 +81,44 @@ a:hover i.fs
 
 .join-us {
     .clearfix;
+    .border-bottom-radius(@spacing-sm-px);
     max-width: 40em;
     margin: 0 auto @spacing-lg-px;
-    padding: 0 @spacing-lg-px;
-    background: @accent-light-color;
+    padding: 0 @spacing-md-px;
+    background: @accent-color;
     color: @accent-light-text-color;
+    /*.box-shadow(0px 2px 0px rgba(0,0,0,.4));*/
+
+    a { color: @accent-light-text-color; }
 
     .heading {
         text-align: center;
-        margin: @spacing-lg-px 0;
+        margin: @spacing-md-px 0;
     }
 
     .map {
         .img-responsive;
+        border-radius: @spacing-sm-px;
+        /*.box-shadow(0px 2px 5px rgba(0,0,0,.5));*/
+        margin: 0 auto;
+        width: 100%;
+        max-width: 250px;
     }
 
     ul { padding-left: 3.3em; }
     p { margin-left: 2.1em; }
 
-    [class^=col] { margin-bottom: @spacing-lg-px; }
+    [class^=col] { margin-bottom: @spacing-md-px; }
 }
 
-.ad-list {
+.sub-ad-list {
     .ad {
         margin-bottom: @spacing-lg-px;
     }
     .ad-title { margin: @spacing-sm-px 0; }
     img {
         width: 100%;
+        border-radius: @spacing-sm-px;
     }
 }
 
@@ -176,11 +182,54 @@ footer {
 
 // default styling should be for phones 767px or less
 
+@media (min-width: @screen-xs-min) {
+    .masthead {
+        .navbar {
+            background: initial;
+        }
+        .brand-tag {
+            position: absolute;
+            display: inline-block;
+            z-index: 100;
+            left: 0;
+            right: 0;
+            top: -2px;
+            text-align: center;
+            padding: 0;
+
+            .logo {
+                .box-shadow(0 2px 1px rgba(0,0,0,.3));
+                padding: @spacing-lg-px @spacing-md-px @spacing-md-px;
+                height: 40px+@spacing-lg-px+@spacing-md-px;
+                background: @accent-color;
+                display: inline-block;
+            }
+        }
+    }
+}
+
 // Small devices (tablets, 768px and up)
 @media (min-width: @screen-sm-min) {
     #ad-rotator {
         margin-left: initial;
         margin-right: initial;
+    }
+    .masthead {
+        .brand-tag {
+            display: inline;
+            left: initial;
+            right: initial;
+        }
+        .home-page & .brand-tag  {
+            margin-left: @spacing-xl-px;
+        }
+    }
+    .join-us {
+        padding: 0 @spacing-lg-px;
+        .heading {
+            margin: @spacing-lg-px 0;
+        }
+        [class^=col] { margin-bottom: @spacing-lg-px; }
     }
 }
 

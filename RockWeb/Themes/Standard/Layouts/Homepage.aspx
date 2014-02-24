@@ -1,6 +1,14 @@
 ﻿<%@ Page ValidateRequest="false" Language="C#" MasterPageFile="Site.Master" 
     AutoEventWireup="true" Inherits="Rock.Web.UI.RockPage" %>
 
+<script runat="server">
+    public void Page_Load(Object sender, EventArgs e)
+    {
+        HtmlElement html = (HtmlElement)Master.FindControl("HtmlTag");
+        html.Attributes.Add("class", "home-page");
+    }
+</script>
+
 <asp:Content ID="ctFeature" ContentPlaceHolderID="feature" runat="server">
 
     <section class="main-feature">
