@@ -21,7 +21,9 @@ using System.Data.Entity.ModelConfiguration.Conventions;
 using System.Linq;
 using System.Reflection;
 using System.Web;
+
 using Rock.Model;
+using Rock.Utility;
 
 namespace Rock.Data
 {
@@ -321,6 +323,14 @@ namespace Rock.Data
         public DbSet<FinancialTransactionRefund> FinancialTransactionRefunds { get; set; }
 
         /// <summary>
+        /// Gets or sets the followings.
+        /// </summary>
+        /// <value>
+        /// The followings.
+        /// </value>
+        public DbSet<Following> Followings { get; set; }
+
+        /// <summary>
         /// Gets or sets the Groups.
         /// </summary>
         /// <value>
@@ -425,6 +435,14 @@ namespace Rock.Data
         public DbSet<MarketingCampaignCampus> MarketingCampaignCampuses { get; set; }
 
         /// <summary>
+        /// Gets or sets the metaphones.
+        /// </summary>
+        /// <value>
+        /// The metaphones.
+        /// </value>
+        public DbSet<Metaphone> Metaphones { get; set; }
+
+        /// <summary>
         /// Gets or sets the Defined Types.
         /// </summary>
         /// <value>
@@ -479,6 +497,14 @@ namespace Rock.Data
         /// the Page Routes.
         /// </value>
         public DbSet<PageRoute> PageRoutes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the page views.
+        /// </summary>
+        /// <value>
+        /// The page views.
+        /// </value>
+        public DbSet<PageView> PageViews { get; set; }
 
         /// <summary>
         /// Gets or sets the People.
@@ -746,6 +772,16 @@ namespace Rock.Data
                     entry.ModifiedDateTime = RockDateTime.Now;
                     entry.ModifiedByPersonAliasId = personAliasId;
                 }
+
+                foreach ( var person in changeSet
+                    .Where( c => 
+                        (c.State == EntityState.Added || c.State == EntityState.Modified) &&
+                        (c.Entity is Person) )
+                    .Select( c => c.Entity as Person))
+                {
+                    var transaction = new Rock.Transactions.SaveMetaphoneTransaction( person );
+                    Rock.Transactions.RockQueue.TransactionQueue.Enqueue( transaction );
+                }
             }
 
             return base.SaveChanges();
@@ -824,6 +860,7 @@ namespace Rock.Data
             modelBuilder.Configurations.Add( new FinancialTransactionDetailConfiguration() );
             modelBuilder.Configurations.Add( new FinancialTransactionImageConfiguration() );
             modelBuilder.Configurations.Add( new FinancialTransactionRefundConfiguration() );
+            modelBuilder.Configurations.Add( new FollowingConfiguration() );
             modelBuilder.Configurations.Add( new GroupConfiguration() );
             modelBuilder.Configurations.Add( new GroupLocationConfiguration() );
             modelBuilder.Configurations.Add( new GroupMemberConfiguration() );
@@ -837,6 +874,7 @@ namespace Rock.Data
             modelBuilder.Configurations.Add( new MarketingCampaignAdTypeConfiguration() );
             modelBuilder.Configurations.Add( new MarketingCampaignAudienceConfiguration() );
             modelBuilder.Configurations.Add( new MarketingCampaignCampusConfiguration() );
+            modelBuilder.Configurations.Add( new MetaphoneConfiguration() );
             modelBuilder.Configurations.Add( new MetricConfiguration() );
             modelBuilder.Configurations.Add( new MetricValueConfiguration() );
             modelBuilder.Configurations.Add( new NoteConfiguration() );
@@ -844,6 +882,7 @@ namespace Rock.Data
             modelBuilder.Configurations.Add( new PageConfiguration() );
             modelBuilder.Configurations.Add( new PageContextConfiguration() );
             modelBuilder.Configurations.Add( new PageRouteConfiguration() );
+            modelBuilder.Configurations.Add( new PageViewConfiguration() );
             modelBuilder.Configurations.Add( new PersonConfiguration() );
             modelBuilder.Configurations.Add( new PersonAliasConfiguration() );
             modelBuilder.Configurations.Add( new PersonBadgeConfiguration() );

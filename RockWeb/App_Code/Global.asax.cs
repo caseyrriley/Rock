@@ -267,6 +267,9 @@ namespace RockWeb
         protected void Session_Start( object sender, EventArgs e )
         {
             new Rock.Model.UserLoginService().UpdateLastLogin( UserLogin.GetCurrentUserName() );
+
+            // add new session id
+            Session["RockSessionId"] = Guid.NewGuid();
         }
 
         /// <summary>
@@ -400,7 +403,7 @@ namespace RockWeb
                                     recipients.Add( emailAddress, mergeObjects );
                                 }
 
-                                Email.Send( Rock.SystemGuid.EmailTemplate.CONFIG_EXCEPTION_NOTIFICATION.AsGuid(), recipients );
+                                Email.Send( Rock.SystemGuid.SystemEmail.CONFIG_EXCEPTION_NOTIFICATION.AsGuid(), recipients );
                             }
                         }
 
