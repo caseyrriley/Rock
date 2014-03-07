@@ -8,6 +8,171 @@
     5. Utility Classes - Classes that we use often to keep from writing from repeating ourselves
 
 */
+/* jquery.Jcrop.css v0.9.12 - MIT License */
+/*
+  The outer-most container in a typical Jcrop instance
+  If you are having difficulty with formatting related to styles
+  on a parent element, place any fixes here or in a like selector
+
+  You can also style this element if you want to add a border, etc
+  A better method for styling can be seen below with .jcrop-light
+  (Add a class to the holder and style elements for that extended class)
+*/
+.jcrop-holder {
+  direction: ltr;
+  text-align: left;
+}
+/* Selection Border */
+.jcrop-vline,
+.jcrop-hline {
+  background: #ffffff url("../../../../Styles/JCrop/Jcrop.gif");
+  font-size: 0;
+  position: absolute;
+}
+.jcrop-vline {
+  height: 100%;
+  width: 1px !important;
+}
+.jcrop-vline.right {
+  right: 0;
+}
+.jcrop-hline {
+  height: 1px !important;
+  width: 100%;
+}
+.jcrop-hline.bottom {
+  bottom: 0;
+}
+/* Invisible click targets */
+.jcrop-tracker {
+  height: 100%;
+  width: 100%;
+  /* "turn off" link highlight */
+  -webkit-tap-highlight-color: transparent;
+  /* disable callout, image save panel */
+  -webkit-touch-callout: none;
+  /* disable cut copy paste */
+  -webkit-user-select: none;
+}
+/* Selection Handles */
+.jcrop-handle {
+  background-color: #333333;
+  border: 1px #eeeeee solid;
+  width: 7px;
+  height: 7px;
+  font-size: 1px;
+}
+.jcrop-handle.ord-n {
+  left: 50%;
+  margin-left: -4px;
+  margin-top: -4px;
+  top: 0;
+}
+.jcrop-handle.ord-s {
+  bottom: 0;
+  left: 50%;
+  margin-bottom: -4px;
+  margin-left: -4px;
+}
+.jcrop-handle.ord-e {
+  margin-right: -4px;
+  margin-top: -4px;
+  right: 0;
+  top: 50%;
+}
+.jcrop-handle.ord-w {
+  left: 0;
+  margin-left: -4px;
+  margin-top: -4px;
+  top: 50%;
+}
+.jcrop-handle.ord-nw {
+  left: 0;
+  margin-left: -4px;
+  margin-top: -4px;
+  top: 0;
+}
+.jcrop-handle.ord-ne {
+  margin-right: -4px;
+  margin-top: -4px;
+  right: 0;
+  top: 0;
+}
+.jcrop-handle.ord-se {
+  bottom: 0;
+  margin-bottom: -4px;
+  margin-right: -4px;
+  right: 0;
+}
+.jcrop-handle.ord-sw {
+  bottom: 0;
+  left: 0;
+  margin-bottom: -4px;
+  margin-left: -4px;
+}
+/* Dragbars */
+.jcrop-dragbar.ord-n,
+.jcrop-dragbar.ord-s {
+  height: 7px;
+  width: 100%;
+}
+.jcrop-dragbar.ord-e,
+.jcrop-dragbar.ord-w {
+  height: 100%;
+  width: 7px;
+}
+.jcrop-dragbar.ord-n {
+  margin-top: -4px;
+}
+.jcrop-dragbar.ord-s {
+  bottom: 0;
+  margin-bottom: -4px;
+}
+.jcrop-dragbar.ord-e {
+  margin-right: -4px;
+  right: 0;
+}
+.jcrop-dragbar.ord-w {
+  margin-left: -4px;
+}
+/* The "jcrop-light" class/extension */
+.jcrop-light .jcrop-vline,
+.jcrop-light .jcrop-hline {
+  background: #ffffff;
+  filter: alpha(opacity=70) !important;
+  opacity: .70!important;
+}
+.jcrop-light .jcrop-handle {
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  background-color: #000000;
+  border-color: #ffffff;
+  border-radius: 3px;
+}
+/* The "jcrop-dark" class/extension */
+.jcrop-dark .jcrop-vline,
+.jcrop-dark .jcrop-hline {
+  background: #000000;
+  filter: alpha(opacity=70) !important;
+  opacity: 0.7 !important;
+}
+.jcrop-dark .jcrop-handle {
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  background-color: #ffffff;
+  border-color: #000000;
+  border-radius: 3px;
+}
+/* Simple macro to turn off the antlines */
+.solid-line .jcrop-vline,
+.solid-line .jcrop-hline {
+  background: #ffffff;
+}
+/* Fix for twitter bootstrap et al. */
+.jcrop-holder img,
+img.jcrop-preview {
+  max-width: none;
+}
 /*
     Used to manage styles related to reusable components / widgets.
     
@@ -33,6 +198,7 @@
     20. Group List - styles a group of people in a ul -> li format
     21. Rock List - styles for the Rock list component
     22. TypeAhead - styles for type ahead support
+    23. Image Cropper - styles for image crop component
 */
 .picker {
   position: relative;
@@ -71,6 +237,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 18px;
 }
 .picker .picker-label .fa.fa-caret-down {
   margin-top: 3px;
@@ -933,6 +1100,7 @@ div.tagsinput .tags_clear {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
 }
 .fileupload-group .fileupload-thumbnail .file-link:after {
   content: '\f016';
@@ -942,7 +1110,7 @@ div.tagsinput .tags_clear {
   -webkit-font-smoothing: antialiased;
   margin-left: 42px;
   position: absolute;
-  top: 0;
+  top: 14px;
   left: 0;
 }
 .fileupload-group .fileupload-thumbnail .file-link.file-exists:after {
@@ -1059,18 +1227,20 @@ ul.groupmembers li.member {
   margin-bottom: 15px;
   min-width: 150px;
 }
-ul.groupmembers li.member img {
+ul.groupmembers li.member .person-image {
   border: 3px solid #006a99;
-  width: 60px;
-}
-ul.groupmembers li.member img.no-photo {
-  height: 60px;
+  float: left;
+  margin-right: 7.5px;
+  display: inline-block;
+  width: 70px;
+  height: 70px;
 }
 ul.groupmembers li.member h4 {
   font-size: 16px;
   font-weight: 600;
   text-overflow: ellipsis;
   overflow: hidden;
+  margin: 0;
 }
 ul.groupmembers li.member small {
   display: block;
@@ -1160,6 +1330,57 @@ ul.rocklist .rocklist-item.selected {
 }
 .tt-suggestion p {
   margin: 0;
+}
+.image-editor-photo {
+  width: 150px;
+  position: relative;
+}
+.image-editor-photo img {
+  width: 150px;
+  height: 150px;
+  border: 3px solid #006a99;
+}
+.image-editor-photo .options {
+  position: absolute;
+  top: 110px;
+  right: 0;
+  background-color: #006a99;
+  color: #ecf0f3;
+  padding: 6px 12px;
+  border-radius: 4px 0 0 4px;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+  -moz-transition: opacity 0.25s ease-in-out;
+  -webkit-transition: opacity 0.25s ease-in-out;
+}
+.image-editor-photo .options a {
+  color: #fff;
+  text-decoration: none;
+  margin-left: 12px;
+  cursor: pointer;
+}
+.image-editor-photo .options a:hover {
+  color: #dce4e9;
+}
+.image-editor-photo .js-upload-progress {
+  position: absolute;
+  top: 55px;
+  left: 55px;
+  color: #ecf0f3;
+  opacity: 0.5;
+}
+.image-editor-fileinput {
+  visibility: hidden;
+}
+.image-editor-crop-container {
+  height: 480px;
+  width: 480px;
+}
+.image-editor-photo:hover .options {
+  opacity: 1;
+}
+.image-editor-photo .options a:first-child {
+  margin-left: 0;
 }
 /*
     Used to manage styles related to the CMS admin UI for on page editing
@@ -1457,6 +1678,9 @@ td.grid-col-actions {
 .table .color-field + th {
   border-left-width: 0px;
 }
+.table .grid-icon img {
+  width: 72px;
+}
 .table > tbody > tr.grid-section-header > td {
   background-color: #66d0ff;
   color: #ffffff;
@@ -1589,9 +1813,6 @@ a.aspNetDisabled {
 }
 .form-group.rock-literal label {
   margin-bottom: 0;
-}
-.form-group.rock-literal p.form-control-static {
-  padding-top: 0;
 }
 .form-group {
   font-size: 14px;
@@ -1850,7 +2071,7 @@ dl dd {
   color: #ffffff;
 }
 .panel-note article.personal > i {
-  color: #a1a1a1;
+  color: #d9d9d9;
 }
 .panel-note article > img {
   float: left;
@@ -1898,6 +2119,9 @@ dl dd {
 }
 .panel-noteentry > .panel-footer + .panel-collapse .panel-body {
   border-bottom-color: #00b1ff;
+}
+.panel-noteentry .settings {
+  margin-top: 4px;
 }
 .panel-noteentry .settings .options input {
   margin-right: 4px;
@@ -2111,18 +2335,19 @@ table.attribute-grid tr th:nth-child(3) {
   position: absolute;
   right: 12px;
   margin-top: 35px;
+  z-index: 999;
 }
 .personprofilebar-bio .photo {
   padding: 5px 5px 5px 5px;
   background-color: #fff;
   border: 1px solid #bdbdbd;
   display: table;
-  width: 100%;
   max-width: 200px;
   margin: 0 auto;
 }
 .personprofilebar-bio .photo img {
   width: 100%;
+  height: auto;
 }
 .personprofilebar-bio .taglist {
   margin-top: 7.5px;
@@ -2286,18 +2511,11 @@ table.attribute-grid tr th:nth-child(3) {
 .personprofilebar-family .actions {
   position: absolute;
   right: 12px;
-  z-order: 99;
+  z-index: 999;
 }
 .personprofilebar-family header {
   font-size: 16px;
   margin-bottom: 7.5px;
-}
-.personprofilebar-family ul li.member img {
-  float: left;
-  margin-right: 7.5px;
-}
-.personprofilebar-family ul li.member h4 {
-  margin: 0;
 }
 .personprofilebar-family .addresses ul {
   list-style: none;
@@ -2308,7 +2526,7 @@ table.attribute-grid tr th:nth-child(3) {
   clear: both;
   margin-bottom: 15px;
 }
-.personprofilebar-family .addresses ul li:first-child {
+.personprofilebar-family .addresses ul li:last-child {
   margin-bottom: 0;
 }
 .personprofilebar-family .addresses ul h4 {
@@ -2337,7 +2555,10 @@ table.attribute-grid tr th:nth-child(3) {
 .editfamily-list li.member .radio {
   width: 65px;
   float: left;
-  margin-top: 0;
+  margin: 0;
+}
+.editfamily-list li.member h4 {
+  height: 38px;
 }
 span.field-name {
   font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
@@ -2441,20 +2662,28 @@ span.field-value {
   width: 750px;
   margin: 30px auto;
 }
-#splash.error #content .error-wrap {
+.error-wrap {
   text-align: center;
   max-width: 450px;
   margin: 0 auto;
 }
-#splash.error #content .error-wrap h1 {
+.error-wrap h1 {
   font-size: 45px;
 }
-#splash.error #content .error-wrap .error-icon {
+.error-wrap .error-icon {
   font-size: 256px;
   line-height: 256px;
   margin: 15px;
   opacity: 0.7;
+}
+.error-wrap .error-icon.info {
+  color: #5bc0de;
+}
+.error-wrap .error-icon.warning {
   color: #f0ad4e;
+}
+.error-wrap .error-icon.danger {
+  color: #d9534f;
 }
 .rock-blank {
   background-color: #ffffff;
@@ -2889,7 +3118,7 @@ a.cke_dialog_ui_button_ok:active {
   color: #ffffff;
 }
 small {
-  font-family: 'OpenSansLight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'OpenSans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   margin-top: 2px;
 }
 .control-label {
@@ -3002,6 +3231,9 @@ small {
 }
 .panel-persondetails .panel-body {
   background-color: #ffffff;
+}
+.panel-persondetails .panel-body .form-group label {
+  margin-bottom: 0;
 }
 .btn.aspNetDisabled {
   cursor: not-allowed;
@@ -3119,6 +3351,9 @@ fieldset[disabled] .btn-security.active {
   z-index: 5;
   display: inline-block;
   margin-top: -10px;
+}
+.form-no-margin {
+  margin: 0;
 }
 div.aspNetDisabled {
   opacity: 0.5;

@@ -46,9 +46,9 @@ namespace RockWeb.Blocks.Security
     [TextField( "Success Caption", "", false, "{0}, Your account has been created", "Captions", 5 )]
     [LinkedPage( "Confirmation Page", "Page for user to confirm their account (if blank will use 'ConfirmAccount' page route)", true, "", "Pages", 6 )]
     [LinkedPage( "Login Page", "Page to navigate to when user elects to login (if blank will use 'Login' page route)", true, "", "Pages", 7 )]
-    [EmailTemplateField( "Forgot Username", "Forgot Username Email Template", false, Rock.SystemGuid.EmailTemplate.SECURITY_FORGOT_USERNAME, "Email Templates", 8, "ForgotUsernameTemplate" )]
-    [EmailTemplateField( "Confirm Account", "Confirm Account Email Template", false, Rock.SystemGuid.EmailTemplate.SECURITY_CONFIRM_ACCOUNT, "Email Templates", 9, "ConfirmAccountTemplate" )]
-    [EmailTemplateField( "Account Created", "Account Created Email Template", false, Rock.SystemGuid.EmailTemplate.SECURITY_ACCOUNT_CREATED, "Email Templates", 10, "AccountCreatedTemplate" )]
+    [EmailTemplateField( "Forgot Username", "Forgot Username Email Template", false, Rock.SystemGuid.SystemEmail.SECURITY_FORGOT_USERNAME, "Email Templates", 8, "ForgotUsernameTemplate" )]
+    [EmailTemplateField( "Confirm Account", "Confirm Account Email Template", false, Rock.SystemGuid.SystemEmail.SECURITY_CONFIRM_ACCOUNT, "Email Templates", 9, "ConfirmAccountTemplate" )]
+    [EmailTemplateField( "Account Created", "Account Created Email Template", false, Rock.SystemGuid.SystemEmail.SECURITY_ACCOUNT_CREATED, "Email Templates", 10, "AccountCreatedTemplate" )]
     public partial class NewAccount : Rock.Web.UI.RockBlock
     {
 
@@ -405,7 +405,7 @@ namespace RockWeb.Blocks.Security
                     var recipients = new Dictionary<string, Dictionary<string, object>>();
                     recipients.Add( person.Email, mergeObjects );
 
-                    Email.Send( GetAttributeValue( "ForgotUsernameTemplate" ).AsGuid(), recipients );
+                    Email.Send( GetAttributeValue( "ForgotUsernameTemplate" ).AsGuid(), recipients, ResolveRockUrl( "~/" ), ResolveRockUrl( "~~/" ) );
                 }
                 else
                     ShowErrorMessage( "Invalid Person" );
@@ -439,7 +439,7 @@ namespace RockWeb.Blocks.Security
                 var recipients = new Dictionary<string, Dictionary<string, object>>();
                 recipients.Add( person.Email, mergeObjects );
 
-                Email.Send( GetAttributeValue( "ConfirmAccountTemplate" ).AsGuid(), recipients );
+                Email.Send( GetAttributeValue( "ConfirmAccountTemplate" ).AsGuid(), recipients, ResolveRockUrl( "~/" ), ResolveRockUrl( "~~/" ) );
 
                 ShowPanel( 4 );
             }
@@ -477,7 +477,7 @@ namespace RockWeb.Blocks.Security
                         var recipients = new Dictionary<string, Dictionary<string, object>>();
                         recipients.Add( person.Email, mergeObjects );
 
-                        Email.Send( GetAttributeValue( "AccountCreatedTemplate" ).AsGuid(), recipients );
+                        Email.Send( GetAttributeValue( "AccountCreatedTemplate" ).AsGuid(), recipients, ResolveRockUrl( "~/" ), ResolveRockUrl( "~~/" ) );
                     }
                     catch(SystemException ex)
                     {

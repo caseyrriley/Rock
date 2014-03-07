@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.Security
     [TextField( "Invalid Email Caption", "", false, "Sorry, we could not find an account for the email address you entered.", "Captions", 1 )]
     [TextField("Success Caption", "", false, "Your user name has been sent with instructions on how to change your password if needed.", "Captions", 2)]
     [LinkedPage( "Confirmation Page", "Page for user to confirm their account (if blank will use 'ConfirmAccount' page route)", true, "", "", 3 )]
-    [EmailTemplateField("Forgot Username Email Template", "Email Template to send", false, Rock.SystemGuid.EmailTemplate.SECURITY_FORGOT_USERNAME, "", 4, "EmailTemplate" )]
+    [EmailTemplateField("Forgot Username Email Template", "Email Template to send", false, Rock.SystemGuid.SystemEmail.SECURITY_FORGOT_USERNAME, "", 4, "EmailTemplate" )]
     public partial class ForgotUserName : Rock.Web.UI.RockBlock
     {
         #region Base Control Methods
@@ -115,7 +115,7 @@ namespace RockWeb.Blocks.Security
                 var recipients = new Dictionary<string, Dictionary<string, object>>();
                 recipients.Add( tbEmail.Text, mergeObjects );
 
-                Email.Send( GetAttributeValue( "EmailTemplate" ).AsGuid(), recipients );
+                Email.Send( GetAttributeValue( "EmailTemplate" ).AsGuid(), recipients, ResolveRockUrl( "~/", true ), ResolveRockUrl( "~~/", true ) );
 
                 pnlEntry.Visible = false;
                 pnlSuccess.Visible = true;

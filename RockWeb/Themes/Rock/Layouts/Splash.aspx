@@ -1,4 +1,4 @@
-﻿<%@ Page ValidateRequest="false" Language="C#" AutoEventWireup="true" Inherits="Rock.Web.UI.RockPage" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" Inherits="Rock.Web.UI.RockPage" %>
 <!DOCTYPE html> 
 <html>
 <head runat="server">
@@ -17,7 +17,6 @@
 	<link rel="stylesheet" href="<%# ResolveUrl("~/Themes/Rock/Styles/theme.css") %>"/>
 	<link rel="stylesheet" href="<%# ResolveUrl("~/Styles/developer.css") %>"/>
 
-    <script src="<%# ResolveUrl("~/Scripts/jquery.js") %>" ></script>
     <script src="<%# ResolveUrl("~/Scripts/bootstrap.min.js") %>" ></script>
 
 </head>

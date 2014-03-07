@@ -55,6 +55,15 @@ namespace Rock.Model
         public int AccountId { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether this is a non-cash detail.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if non-cash; otherwise, <c>false</c>.
+        /// </value>
+        [DataMember]
+        public bool IsNonCash { get; set; }
+
+        /// <summary>
         /// Gets or sets the amount of the transaction detail.
         /// </summary>
         /// <value>
@@ -134,7 +143,7 @@ namespace Rock.Model
         /// </returns>
         public override string ToString()
         {
-            return this.Amount.ToString();
+            return this.Amount.ToStringSafe();
         }
 
         #endregion

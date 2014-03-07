@@ -66,6 +66,15 @@ namespace Rock.Rest.Controllers
                 } );
 
             routes.MapHttpRoute(
+                name: "PeopleGetByPersonAliasId",
+                routeTemplate: "api/People/GetByPersonAliasId/{personAliasId}",
+                defaults: new
+                {
+                    controller = "People",
+                    action = "GetByPersonAliasId"
+                } );
+
+            routes.MapHttpRoute(
                 name: "PeoplePopupHtml",
                 routeTemplate: "api/People/PopupHtml/{personId}",
                 defaults: new
@@ -144,9 +153,9 @@ namespace Rock.Rest.Controllers
 
                 if ( includeHtml )
                 {
-                    string imageHtml = null;
-
-                    imageHtml = Person.GetPhotoImageTag( person.PhotoId, person.Gender, 65, 65 );
+                    string imageHtml = string.Format(
+                        "<div class='person-image' style='background-image:url({0}&width=65);background-size:cover;background-position:50%'></div>",
+                        Person.GetPhotoUrl( person.PhotoId, person.Gender ) );
 
                     string personInfo = string.Empty;
 
@@ -230,6 +239,25 @@ namespace Rock.Rest.Controllers
         public Person GetByUserName( string username )
         {
             int? personId = new UserLoginService().Queryable().Where( u => u.UserName.Equals( username ) ).Select( a => a.PersonId ).FirstOrDefault();
+            if ( personId != null )
+            {
+                return this.Get( personId.Value );
+            }
+
+            throw new HttpResponseException( System.Net.HttpStatusCode.NotFound );
+        }
+
+        /// <summary>
+        /// Gets the Person by person alias identifier.
+        /// </summary>
+        /// <param name="personAliasId">The person alias identifier.</param>
+        /// <returns></returns>
+        /// <exception cref="System.Web.Http.HttpResponseException"></exception>
+        [Authenticate, Secured]
+        [HttpGet]
+        public Person GetByPersonAliasId( int personAliasId )
+        {
+            int? personId = new PersonAliasService().Queryable().Where( u => u.Id.Equals( personAliasId ) ).Select( a => a.PersonId ).FirstOrDefault();
             if ( personId != null )
             {
                 return this.Get( personId.Value );

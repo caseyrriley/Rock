@@ -133,7 +133,7 @@ namespace Rock.Rest.Controllers
             }
 
             parameters.Add( "orderByZipCode", options.OrderByZipCode );
-            var result = service.GetDataSet( "spContributionStatementQuery", System.Data.CommandType.StoredProcedure, parameters );
+            var result = service.GetDataSet( "spFinance_ContributionStatementQuery", System.Data.CommandType.StoredProcedure, parameters );
 
             if ( result.Tables.Count > 0 )
             {
@@ -197,7 +197,7 @@ namespace Rock.Rest.Controllers
                 CurrencyTypeValueName = a.CurrencyTypeValue.Name,
                 a.Summary,
                 Account = a.TransactionDetails.FirstOrDefault().Account,
-                a.TotalAmount
+                TotalAmount = a.TransactionDetails.Sum( d=> d.Amount)
             } ).OrderBy( a => a.TransactionDateTime );
 
             DataTable dataTable = new DataTable( "contribution_transactions" );
