@@ -49,6 +49,9 @@ a:hover i.fs
 .masthead {
     margin-bottom: @spacing-xl-px;
     border-bottom: 1px solid @gray-lighter;
+
+    .is-home-page & { margin-bottom: 0; }
+
     .brand-tag {
         display: inline-block;
         padding: 10px;
@@ -69,8 +72,11 @@ a:hover i.fs
 }
 
 // homepage items
+.main-feature {
+    background: @gray-dark;
+}
 #ad-rotator {
-    margin: -@spacing-xl-px  -@grid-gutter-width/2 0;
+    margin: 0 -@grid-gutter-width/2 0;
 
     .item {
         img {
@@ -79,13 +85,17 @@ a:hover i.fs
     }
 }
 
+.section-a {
+    background: @gray;
+    margin-bottom: @spacing-lg-px;
+}
+
 .join-us {
     .clearfix;
     .border-bottom-radius(@spacing-sm-px);
     max-width: 40em;
-    margin: 0 auto @spacing-lg-px;
+    .center-block();
     padding: 0 @spacing-md-px;
-    background: @accent-color;
     color: @accent-light-text-color;
     /*.box-shadow(0px 2px 0px rgba(0,0,0,.4));*/
 
@@ -190,19 +200,22 @@ footer {
         .brand-tag {
             position: absolute;
             display: inline-block;
-            z-index: 100;
+            z-index: 1;
             left: 0;
             right: 0;
             top: -2px;
             text-align: center;
             padding: 0;
+            min-height: 100px;
+            background: @accent-color;
+            .box-shadow(0 2px 1px rgba(0,0,0,.3));
+            display: table;
 
             .logo {
-                .box-shadow(0 2px 1px rgba(0,0,0,.3));
-                padding: @spacing-lg-px @spacing-md-px @spacing-md-px;
-                height: 40px+@spacing-lg-px+@spacing-md-px;
-                background: @accent-color;
-                display: inline-block;
+                padding: @spacing-md-px;
+                height: 40px+@spacing-md-px*2;
+                display: table-cell;
+                vertical-align: middle;
             }
         }
     }
@@ -216,12 +229,11 @@ footer {
     }
     .masthead {
         .brand-tag {
-            display: inline;
             left: initial;
             right: initial;
         }
-        .home-page & .brand-tag  {
-            margin-left: @spacing-xl-px;
+        .is-home-page & .brand-tag  {
+            /*margin-left: @spacing-xl-px;*/
         }
     }
     .join-us {

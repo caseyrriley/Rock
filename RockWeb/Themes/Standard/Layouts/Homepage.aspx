@@ -5,7 +5,7 @@
     public void Page_Load(Object sender, EventArgs e)
     {
         HtmlElement html = (HtmlElement)Master.FindControl("HtmlTag");
-        html.Attributes.Add("class", "home-page");
+        html.Attributes.Add("class", "is-home-page");
     }
 </script>
 
@@ -25,7 +25,7 @@
 
 <asp:Content ID="ctMain" ContentPlaceHolderID="main" runat="server">
     
-	<main class="container">
+	<section class="container">
         
         <!-- Start Content Area -->
         
@@ -35,7 +35,15 @@
             <span class="ajax-error-message"></span>
         </div>
 
-        <Rock:Zone Name="Section A" runat="server" />
+    </section>
+
+    <section class="section-a">
+        <div class="container">
+            <Rock:Zone Name="Section A" runat="server" />
+        </div>
+    </section>
+
+    <section class="container">
 
         <div class="row">
             <div class="col-md-12">
@@ -57,7 +65,7 @@
 
         <!-- End Content Area -->
 
-	</main>
+	</section>
         
 </asp:Content>
 
